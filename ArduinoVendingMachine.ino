@@ -26,6 +26,7 @@ const uint8_t clockPinIn = 11, dataPinIn = 9, latchPinIn = 7; // Pins used to ch
 
 const uint8_t motorToOutputMask[] = { 0x04, 0x08, 0x10, 0x20, 0x40, 0x80 };
 const uint8_t motorToInputMask[] = { 0x02, 0x04, 0x08, 0x10, 0x20, 0x40 };
+const uint8_t errorLedMask = 0x02; //, greenLedMask = 0x01; // The green LED does not work at the moment
 
 uint8_t motorOutput, ledOutput;
 
@@ -86,6 +87,7 @@ void loop() {
 
   if (counter != lastCounter || (millis() - purchaseTimer > 1000 && waitAfterButtonPress)) { // Only update the LED matrix if a coin has been inserted or 1s after purchaseChecker() has printed something to the LED matrix
     updateDisplay(counter);
+    ledOutput &= ~errorLedMask;
     lastCounter = counter;
     waitAfterButtonPress = false;
   }
@@ -116,7 +118,7 @@ void checkStopMotor() { // Stops motors after is has done a half revolution
   }
 }
 
-// TODO: If there is not enoguh money blink price
+// TODO: If there is not enough money blink price
 void purchaseChecker() {  
   uint8_t price = 0;
   uint8_t buttonPressed = 0xFF; // No button is pressed
@@ -138,11 +140,13 @@ void purchaseChecker() {
       }
       else { // Not enough money to buy item
         updateDisplay(price); // Show the price of the item
+        ledOutput |= errorLedMask;
         purchaseTimer = millis(); // Set up timer, so it clears it after a set amount of time
         waitAfterButtonPress = true;
       }
     } else {
       errorDisplay();
+      ledOutput |= errorLedMask;
       purchaseTimer = millis(); // Set up timer, so it clears it after a set amount of time
       waitAfterButtonPress = true;
     }
