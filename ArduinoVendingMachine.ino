@@ -5,7 +5,7 @@
  */
 
 // Change price of the items here:
-const uint8_t priceArray[] = { 5, 10, 15, 20, 25, 30 };
+const uint8_t priceArray[] = { 5, 5, 5, 5, 5, 5 };
 
 
 // Do not change anything else below this line!
@@ -14,7 +14,7 @@ uint8_t lastButtonPressed;
 uint32_t purchaseTimer;
 bool waitAfterButtonPress;
 
-const uint8_t resetPinLED = 12, clockPinLED = 13, dataPinLED = A3, latchPinLED = A2;
+const uint8_t resetPinLED = 13, clockPinLED = A1, dataPinLED = A2, latchPinLED = A0;
 const uint8_t numbers[] = { 0xC0, 0xF9, 0xA4, 0xB0, 0x99, 0x92, 0x82, 0xF8, 0x80, 0x90 }; // Numbers for LED matrix
 
 bool lastCoinInput;
@@ -65,7 +65,8 @@ void setup() {
 
   digitalWrite(clockPinIn, LOW);
   digitalWrite(latchPinIn, HIGH);
-
+  
+  // TODO: Create boot up message
   // Update display and set motors to the default position
   clearDisplay(); // Clear display
   updateDisplay(counter); // Update display to show counter value
@@ -87,7 +88,6 @@ void loop() {
 
   if (counter != lastCounter || (millis() - purchaseTimer > 1000 && waitAfterButtonPress)) { // Only update the LED matrix if a coin has been inserted or 1s after purchaseChecker() has printed something to the LED matrix
     updateDisplay(counter);
-    ledOutput &= ~errorLedMask;
     lastCounter = counter;
     waitAfterButtonPress = false;
   }
@@ -105,6 +105,7 @@ void checkAllSlots() { // Check if any of the slots are empty
 
 void spinMotor(uint8_t motor) { // You must call checkStopMotor() to stop the motor again after it has done the half revolution
   motorOutput |= motorToOutputMask[motor];
+  ledOutput |= errorLedMask;
   updateMotorsLEDs();
   while (!motorSwitchPressed(readSwitches(), motor)) // Wait until switch is pressed
     delay(10);
@@ -113,8 +114,10 @@ void spinMotor(uint8_t motor) { // You must call checkStopMotor() to stop the mo
 void checkStopMotor() { // Stops motors after is has done a half revolution
   uint32_t input = readSwitches();
   for (uint8_t i = 0; i < sizeof(motorToOutputMask); i++) {
-    if (!motorSwitchPressed(input, i)) // Switch is released
+    if (!motorSwitchPressed(input, i) && motorOutput & motorToOutputMask[i]) { // Switch is released and motor is running
       motorOutput &= ~motorToOutputMask[i];
+      ledOutput &= ~errorLedMask;
+    }
   }
 }
 
@@ -135,18 +138,19 @@ void purchaseChecker() {
   if (buttonPressed != 0xFF && buttonPressed != lastButtonPressed) {
     if (ledOutput & motorToOutputMask[buttonPressed]) { // Check if the selected item is available
       if (counter >= price) { // Purchase item
-        counter -= price;
-        spinMotor(buttonPressed);
-      }
-      else { // Not enough money to buy item
+        if (motorOutput) { // Check if any motor is spinning
+          // TODO: Progress bar
+        } else {
+          counter -= price;
+          spinMotor(buttonPressed);
+        }
+      } else { // Not enough money to buy item
         updateDisplay(price); // Show the price of the item
-        ledOutput |= errorLedMask;
         purchaseTimer = millis(); // Set up timer, so it clears it after a set amount of time
         waitAfterButtonPress = true;
       }
     } else {
       errorDisplay();
-      ledOutput |= errorLedMask;
       purchaseTimer = millis(); // Set up timer, so it clears it after a set amount of time
       waitAfterButtonPress = true;
     }
@@ -248,7 +252,6 @@ bool motorSwitchPressed(uint32_t input, uint8_t motor) {
 bool buyButtonPressed(uint32_t input, uint8_t button) {
   return !(input & ((uint32_t)motorToInputMask[button] << 16));
 }
-
 
 void updateMotorsLEDs() {
   digitalWrite(latchPinOut, LOW); // Ground latchPin and hold low for as long as you are transmitting
