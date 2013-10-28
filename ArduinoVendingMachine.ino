@@ -21,9 +21,10 @@ bool waitAfterButtonPress;
 const uint8_t clockPinLED = A1, dataPinLED = A2, latchPinLED = A0, resetPinLED = 13;
 const uint8_t numbers[] = { 0xC0, 0xF9, 0xA4, 0xB0, 0x99, 0x92, 0x82, 0xF8, 0x80, 0x90 }; // Numbers for LED matrix
 
+uint8_t displayBuffer[5];
 uint8_t* pOutputString;
 bool displayScrolling;
-uint8_t scrollPosition, trailingSpace;
+uint8_t scrollPosition, trailingSpaces;
 uint32_t scrollTimer;
 
 bool lastCoinInput;
@@ -121,33 +122,34 @@ void scrollDisplay(const uint8_t* output) {
   pOutputString = (uint8_t*)output;
   displayScrolling = true;
   scrollPosition = 0;
-  trailingSpace = 0;
+  trailingSpaces = 0;
+  scrollTimer = 0;
+  memset(displayBuffer, OFF, sizeof(displayBuffer)); // Initialize all to OFF
 }
 
-void updateScroll() {
+void updateScroll() { // This should be called regularly after scrollDisplay() is called
   uint32_t timer = millis();
   if (timer - scrollTimer < 300)
     return;
   scrollTimer = timer;
+  
+  for (uint8_t i = sizeof(displayBuffer) - 1; i > 0 ; i--) // Shift array one to the left
+     displayBuffer[i] = displayBuffer[i-1];
 
-  uint8_t output[5];
-  memset(output, OFF, sizeof(output));
-
-  for (uint8_t i = 0; (i + trailingSpace) < sizeof(output) && i <= scrollPosition; i++) {
-    uint8_t value = *(pOutputString + (scrollPosition - i));
-    if (value == OFF)
-      trailingSpace++;
-    else // It is already OFF by default
-      output[i + trailingSpace] = value;
-  }
-  if (trailingSpace == 0)
-    scrollPosition++;
-
-  if (trailingSpace == sizeof(output)) {
-    displayScrolling = false;
-    showValue(counter);
+  if (trailingSpaces == 0) { // Check if it is still reading the array
+    displayBuffer[0] = *(pOutputString + scrollPosition); // Read new value into array
+    if (displayBuffer[0] == OFF) // End char found
+      trailingSpaces++;
+    else
+      scrollPosition++;
   } else
-    printDisplay(output);
+    trailingSpaces++; // End char is found, so just add trailing spaces until text is fully scrolled out
+
+  if (trailingSpaces == sizeof(displayBuffer)) {
+    displayScrolling = false;
+    showValue(counter); // Show counter value on display again after scrolling the text
+  } else
+    printDisplay(displayBuffer);
 }
 
 void checkAllSlots() { // Check if any of the slots are empty
@@ -232,6 +234,7 @@ void errorDisplay() {
   output[0] = dash; // '-'
   printDisplay(output);
 }
+
 void showValue(uint16_t input) {
   uint8_t output[5];
 
