@@ -87,8 +87,6 @@ void loop() {
     int input = Serial.read();
     if (input >= '0' && input <= '5')
       spinMotor(input - '0');
-    else if (input == 'T')
-      scrollDisplay(TEST);
     else if (input == 'C')
       scrollDisplay(COLA);
     else if (input == 'P')

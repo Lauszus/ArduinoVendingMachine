@@ -38,9 +38,6 @@ enum Letter {
   K = X,
 };
 
-/* NOTE: The length of the message must be at least 5 including OFF */
-const uint8_t TEST[] = { E, OFF };
-
 const uint8_t COLA[] = { C, O, L, A, OFF };
 const uint8_t PEPSI[] = { P, E, P, S, I, OFF };
 const uint8_t FANTA[] = { F, A, n, T1, T2 , A, OFF };
