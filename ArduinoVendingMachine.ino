@@ -77,7 +77,6 @@ void setup() {
   
   // TODO: Create boot up message
   // Update display and set motors to the default position
-  clearDisplay(); // Clear display
   updateDisplay(counter); // Update display to show counter value
   resetMotors(); // Reset all motors to the default position
 }
@@ -221,16 +220,6 @@ void cointInterrupt() {
   if (input && !lastCoinInput)
     counter += 5;
   lastCoinInput = input;
-}
-
-void clearDisplay() {
-  uint8_t output[5];
-  output[4] = OFF; // ' '
-  output[3] = OFF; // ' '
-  output[2] = OFF; // ' '
-  output[1] = OFF; // ' '
-  output[0] = OFF; // ' '
-  printDisplay(output);
 }
 
 void errorDisplay() {
