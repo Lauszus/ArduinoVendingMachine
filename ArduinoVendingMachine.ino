@@ -39,6 +39,7 @@ const uint8_t motorToInputMask[] = { 0x02, 0x04, 0x08, 0x10, 0x20, 0x40 };
 const uint8_t errorLedMask = 0x02; //, greenLedMask = 0x01; // The green LED does not work at the moment
 
 uint8_t motorOutput, ledOutput, oldMotorOutput, oldLedOutput;
+uint32_t motorTimer;
 
 void setup() {
   Serial.begin(115200);
@@ -76,10 +77,10 @@ void setup() {
   digitalWrite(clockPinIn, LOW);
   digitalWrite(latchPinIn, HIGH);
 
-  // TODO: Create boot up message
   // Update display and set motors to the default position
-  showValue(counter); // Update display to show counter value
+  showBoot();
   resetMotors(); // Reset all motors to the default position
+  showValue(counter); // Update display to show counter value
 }
 
 void loop() {
@@ -161,6 +162,7 @@ void checkAllSlots() { // Check if any of the slots are empty
 }
 
 void spinMotor(uint8_t motor) { // You must call checkStopMotor() to stop the motor again after it has done the half revolution
+  motorTimer = millis();
   motorOutput |= motorToOutputMask[motor];
   ledOutput |= errorLedMask;
   updateMotorsLEDs();
@@ -176,6 +178,9 @@ void checkStopMotor() { // Stops motors after is has done a half revolution
       ledOutput &= ~errorLedMask;
     }
   }
+  
+  if (motorOutput && millis() - motorTimer > 10000) // If the motor has been turning more than 10s, then it must be stuck
+    error();
 }
 
 // TODO: If there is not enough money blink price
@@ -221,12 +226,22 @@ void cointInterrupt() {
   lastCoinInput = input;
 }
 
+void showBoot() {
+  uint8_t output[5];
+  output[4] = B;
+  output[3] = O;
+  output[2] = O;
+  output[1] = T1;
+  output[0] = T2;
+  printDisplay(output);
+}
+
 void errorDisplay() {
   uint8_t output[5];
   output[4] = dash; // '-'
-  output[3] = E; // 'E'
-  output[2] = r; // 'r'
-  output[1] = r; // 'r'
+  output[3] = E;
+  output[2] = r;
+  output[1] = r;
   output[0] = dash; // '-'
   printDisplay(output);
 }
@@ -273,7 +288,6 @@ void printDisplay(uint8_t* output) {
   digitalWrite(latchPinLED, HIGH);
 }
 
-// TODO: Check if this goes on too long - if it does it means that there is an error
 void resetMotors() { // Set all motors to the default position
   for (uint8_t i = 0; i < sizeof(motorToOutputMask); i++)
     motorOutput |= motorToOutputMask[i]; // Set all motors on
@@ -285,16 +299,19 @@ void resetMotors() { // Set all motors to the default position
       if (!motorSwitchPressed(input, i)) // If switch is released stop motor
         motorOutput &= ~motorToOutputMask[i];
     }
-    if (millis() - timer > 10000) {
-      errorDisplay();
-      motorOutput = 0;
-      updateMotorsLEDs();
-      while (1);
-    }
-
+    if (millis() - timer > 10000)
+      error();
     updateMotorsLEDs();
     delay(10);
   }
+}
+
+void error() {
+  errorDisplay();
+  motorOutput = 0;
+  ledOutput = 0;
+  updateMotorsLEDs();
+  while (1);
 }
 
 bool checkSlot(uint32_t input, uint8_t motor) {
