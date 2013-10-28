@@ -37,7 +37,7 @@ const uint8_t motorToOutputMask[] = { 0x04, 0x08, 0x10, 0x20, 0x40, 0x80 };
 const uint8_t motorToInputMask[] = { 0x02, 0x04, 0x08, 0x10, 0x20, 0x40 };
 const uint8_t errorLedMask = 0x02; //, greenLedMask = 0x01; // The green LED does not work at the moment
 
-uint8_t motorOutput, ledOutput;
+uint8_t motorOutput, ledOutput, oldMotorOutput, oldLedOutput;
 
 void setup() {
   Serial.begin(115200);
@@ -312,6 +312,11 @@ bool buyButtonPressed(uint32_t input, uint8_t button) {
 }
 
 void updateMotorsLEDs() {
+  if (ledOutput == oldLedOutput && motorOutput == oldMotorOutput)
+    return;
+  oldLedOutput = ledOutput;
+  oldMotorOutput = motorOutput;
+
   digitalWrite(latchPinOut, LOW); // Ground latchPin and hold low for as long as you are transmitting
   shiftOut(dataPinOut, clockPinOut, LSBFIRST, ledOutput);
   shiftOut(dataPinOut, clockPinOut, LSBFIRST, motorOutput);
