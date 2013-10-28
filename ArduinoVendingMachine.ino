@@ -23,7 +23,7 @@ const uint8_t numbers[] = { 0xC0, 0xF9, 0xA4, 0xB0, 0x99, 0x92, 0x82, 0xF8, 0x80
 
 uint8_t* pOutputString;
 bool displayScrolling;
-uint8_t scrollPosition, whiteSpace;
+uint8_t scrollPosition, trailingSpace;
 uint32_t scrollTimer;
 
 bool lastCoinInput;
@@ -74,18 +74,20 @@ void setup() {
 
   digitalWrite(clockPinIn, LOW);
   digitalWrite(latchPinIn, HIGH);
-  
+
   // TODO: Create boot up message
   // Update display and set motors to the default position
-  updateDisplay(counter); // Update display to show counter value
+  showValue(counter); // Update display to show counter value
   resetMotors(); // Reset all motors to the default position
 }
 
 void loop() {
-  if (Serial.available()) { // Control motors for debugging
+  if (Serial.available()) { // Only used for debugging
     int input = Serial.read();
     if (input >= '0' && input <= '5')
       spinMotor(input - '0');
+    else if (input == 'T')
+      scrollDisplay(TEST);
     else if (input == 'C')
       scrollDisplay(COLA);
     else if (input == 'P')
@@ -98,16 +100,16 @@ void loop() {
       scrollDisplay(BEER);
   }
 
-  checkStopMotor(); // Check if motor has turned a half revolution
+  checkStopMotor(); // Check if a motor has turned a half revolution
   checkAllSlots(); // Check if any slot is empty
   updateMotorsLEDs(); // Send out the new values to the shift register
 
   purchaseChecker(); // Check if a button has been pressed
-  
+
   if (displayScrolling)
     updateScroll();
   else if (counter != lastCounter || (waitAfterButtonPress && (millis() - purchaseTimer > 1000))) { // Only update the LED matrix if a coin has been inserted or 1s after purchaseChecker() has printed something to the LED matrix
-    updateDisplay(counter);
+    showValue(counter);
     lastCounter = counter;
     waitAfterButtonPress = false;
   }
@@ -119,43 +121,42 @@ void scrollDisplay(const uint8_t* output) {
   pOutputString = (uint8_t*)output;
   displayScrolling = true;
   scrollPosition = 0;
-  whiteSpace = 0;
+  trailingSpace = 0;
 }
 
 void updateScroll() {
-  if (millis() - scrollTimer < 300)
+  uint32_t timer = millis();
+  if (timer - scrollTimer < 300)
     return;
-  scrollTimer = millis();
-  
+  scrollTimer = timer;
+
   uint8_t output[5];
   memset(output, OFF, sizeof(output));
-  
-  uint8_t offset = whiteSpace;
-  for (uint8_t i = whiteSpace; i < sizeof(output) && i <= scrollPosition; i++) {
-    uint8_t value = *(pOutputString + (scrollPosition - i) + offset);
+
+  for (uint8_t i = 0; (i + trailingSpace) < sizeof(output) && i <= scrollPosition; i++) {
+    uint8_t value = *(pOutputString + (scrollPosition - i));
     if (value == OFF)
-      whiteSpace++;
-    output[i] = value;
+      trailingSpace++;
+    else // It is already OFF by default
+      output[i + trailingSpace] = value;
   }
-  if (whiteSpace == 0)
+  if (trailingSpace == 0)
     scrollPosition++;
-    
-  if (whiteSpace == sizeof(output))
+
+  if (trailingSpace == sizeof(output)) {
     displayScrolling = false;
-  
-  if (displayScrolling)
+    showValue(counter);
+  } else
     printDisplay(output);
-  else
-    updateDisplay(counter);
 }
 
 void checkAllSlots() { // Check if any of the slots are empty
   uint32_t input = readSwitches();
   for (uint8_t i = 0; i < sizeof(motorToOutputMask); i++) {
-    if (!checkSlot(input, i))
-      ledOutput &= ~motorToOutputMask[i];
-    else
+    if (checkSlot(input, i))
       ledOutput |= motorToOutputMask[i];
+    else
+      ledOutput &= ~motorToOutputMask[i];
   }
 }
 
@@ -178,10 +179,10 @@ void checkStopMotor() { // Stops motors after is has done a half revolution
 }
 
 // TODO: If there is not enough money blink price
-void purchaseChecker() {  
+void purchaseChecker() {
   uint8_t price = 0;
   uint8_t buttonPressed = 0xFF; // No button is pressed
-  
+
   uint32_t switchInput = readSwitches();
   for (uint8_t i = 0; i < sizeof(motorToInputMask); i++) {
     if (buyButtonPressed(switchInput, i)) {
@@ -190,7 +191,7 @@ void purchaseChecker() {
       break;
     }
   }
-    
+
   if (buttonPressed != 0xFF && buttonPressed != lastButtonPressed) {
     if (ledOutput & motorToOutputMask[buttonPressed]) { // Check if the selected item is available
       if (counter >= price) { // Purchase item
@@ -202,7 +203,7 @@ void purchaseChecker() {
           scrollDisplay(nameArray[buttonPressed]);
         }
       } else { // Not enough money to buy item
-        updateDisplay(price); // Show the price of the item
+        showValue(price); // Show the price of the item
         purchaseTimer = millis(); // Set up timer, so it clears it after a set amount of time
         waitAfterButtonPress = true;
       }
@@ -212,7 +213,7 @@ void purchaseChecker() {
       waitAfterButtonPress = true;
     }
   }
-  lastButtonPressed = buttonPressed;    
+  lastButtonPressed = buttonPressed;
 }
 
 void cointInterrupt() {
@@ -231,7 +232,7 @@ void errorDisplay() {
   output[0] = dash; // '-'
   printDisplay(output);
 }
-void updateDisplay(uint16_t input) {
+void showValue(uint16_t input) {
   uint8_t output[5];
 
   output[0] = numbers[input % 10];
@@ -244,22 +245,22 @@ void updateDisplay(uint16_t input) {
     output[1] = OFF;
   else
     output[1] = numbers[output[1]];
-    
+
   if (input < 100)
     output[2] = OFF;
   else
     output[2] = numbers[output[2]];
-    
+
   if (input < 1000)
     output[3] = OFF;
   else
     output[3] = numbers[output[3]];
-    
+
   if (input < 10000)
     output[4] = OFF;
   else
     output[4] = numbers[output[4]];
-  
+
   printDisplay(output);
 }
 
@@ -273,6 +274,7 @@ void printDisplay(uint8_t* output) {
   digitalWrite(latchPinLED, HIGH);
 }
 
+// TODO: Check if this goes on too long - if it does it means that there is an error
 void resetMotors() { // Set all motors to the default position
   for (uint8_t i = 0; i < sizeof(motorToOutputMask); i++)
     motorOutput |= motorToOutputMask[i]; // Set all motors on
