@@ -4,8 +4,12 @@
  * This code is used for an old vending machine where the main board did not work anymore
  */
 
+#include "ArduinoVendingMachine.h"
+
 // Change price of the items here:
 const uint8_t priceArray[] = { 5, 5, 5, 5, 5, 5 };
+// Change the name of the item here:
+const uint8_t* nameArray[] = { FANTA, FANTA, COLA, COLA, FAXE, FAXE }; // See in ArduinoVendingMachine.h for the possible names. If the one you need is not present then type NULL instead
 
 
 // Do not change anything else below this line!
@@ -14,8 +18,13 @@ uint8_t lastButtonPressed;
 uint32_t purchaseTimer;
 bool waitAfterButtonPress;
 
-const uint8_t resetPinLED = 13, clockPinLED = A1, dataPinLED = A2, latchPinLED = A0;
+const uint8_t clockPinLED = A1, dataPinLED = A2, latchPinLED = A0, resetPinLED = 13;
 const uint8_t numbers[] = { 0xC0, 0xF9, 0xA4, 0xB0, 0x99, 0x92, 0x82, 0xF8, 0x80, 0x90 }; // Numbers for LED matrix
+
+uint8_t* pOutputString;
+bool displayScrolling;
+uint8_t scrollPosition, whiteSpace;
+uint32_t scrollTimer;
 
 bool lastCoinInput;
 volatile uint16_t counter;
@@ -78,6 +87,16 @@ void loop() {
     int input = Serial.read();
     if (input >= '0' && input <= '5')
       spinMotor(input - '0');
+    else if (input == 'C')
+      scrollDisplay(COLA);
+    else if (input == 'P')
+      scrollDisplay(PEPSI);
+    else if (input == 'F')
+      scrollDisplay(FANTA);
+    else if (input == 'X')
+      scrollDisplay(FAXE);
+    else if (input == 'B')
+      scrollDisplay(BEER);
   }
 
   checkStopMotor(); // Check if motor has turned a half revolution
@@ -85,12 +104,50 @@ void loop() {
   updateMotorsLEDs(); // Send out the new values to the shift register
 
   purchaseChecker(); // Check if a button has been pressed
-
-  if (counter != lastCounter || (millis() - purchaseTimer > 1000 && waitAfterButtonPress)) { // Only update the LED matrix if a coin has been inserted or 1s after purchaseChecker() has printed something to the LED matrix
+  
+  if (displayScrolling)
+    updateScroll();
+  else if (counter != lastCounter || (waitAfterButtonPress && (millis() - purchaseTimer > 1000))) { // Only update the LED matrix if a coin has been inserted or 1s after purchaseChecker() has printed something to the LED matrix
     updateDisplay(counter);
     lastCounter = counter;
     waitAfterButtonPress = false;
   }
+}
+
+void scrollDisplay(const uint8_t* output) {
+  if (output == NULL)
+    return;
+  pOutputString = (uint8_t*)output;
+  displayScrolling = true;
+  scrollPosition = 0;
+  whiteSpace = 0;
+}
+
+void updateScroll() {
+  if (millis() - scrollTimer < 300)
+    return;
+  scrollTimer = millis();
+  
+  uint8_t output[5];
+  memset(output, OFF, sizeof(output));
+  
+  uint8_t offset = whiteSpace;
+  for (uint8_t i = whiteSpace; i < sizeof(output) && i <= scrollPosition; i++) {
+    uint8_t value = *(pOutputString + (scrollPosition - i) + offset);
+    if (value == OFF)
+      whiteSpace++;
+    output[i] = value;
+  }
+  if (whiteSpace == 0)
+    scrollPosition++;
+    
+  if (whiteSpace == sizeof(output))
+    displayScrolling = false;
+  
+  if (displayScrolling)
+    printDisplay(output);
+  else
+    updateDisplay(counter);
 }
 
 void checkAllSlots() { // Check if any of the slots are empty
@@ -143,6 +200,7 @@ void purchaseChecker() {
         } else {
           counter -= price;
           spinMotor(buttonPressed);
+          scrollDisplay(nameArray[buttonPressed]);
         }
       } else { // Not enough money to buy item
         updateDisplay(price); // Show the price of the item
@@ -167,21 +225,21 @@ void cointInterrupt() {
 
 void clearDisplay() {
   uint8_t output[5];
-  output[4] = 0xFF; // ' '
-  output[3] = 0xFF; // ' '
-  output[2] = 0xFF; // ' '
-  output[1] = 0xFF; // ' '
-  output[0] = 0xFF; // ' '
+  output[4] = OFF; // ' '
+  output[3] = OFF; // ' '
+  output[2] = OFF; // ' '
+  output[1] = OFF; // ' '
+  output[0] = OFF; // ' '
   printDisplay(output);
 }
 
 void errorDisplay() {
   uint8_t output[5];
-  output[4] = 0xBF; // '-'
-  output[3] = 0x86; // 'E'
-  output[2] = 0xAF; // 'r'
-  output[1] = 0xAF; // 'r'
-  output[0] = 0xBF; // '-'
+  output[4] = line; // '-'
+  output[3] = E; // 'E'
+  output[2] = r; // 'r'
+  output[1] = r; // 'r'
+  output[0] = line; // '-'
   printDisplay(output);
 }
 void updateDisplay(uint16_t input) {
@@ -194,22 +252,22 @@ void updateDisplay(uint16_t input) {
   output[4] = (uint16_t)floor(input / 10000) % 10;
 
   if (input < 10)
-    output[1] = 0xFF;
+    output[1] = OFF;
   else
     output[1] = numbers[output[1]];
     
   if (input < 100)
-    output[2] = 0xFF;
+    output[2] = OFF;
   else
     output[2] = numbers[output[2]];
     
   if (input < 1000)
-    output[3] = 0xFF;
+    output[3] = OFF;
   else
     output[3] = numbers[output[3]];
     
   if (input < 10000)
-    output[4] = 0xFF;
+    output[4] = OFF;
   else
     output[4] = numbers[output[4]];
   
