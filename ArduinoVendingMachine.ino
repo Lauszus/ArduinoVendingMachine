@@ -132,9 +132,9 @@ void updateScroll() { // This should be called regularly after scrollDisplay() i
   if (timer - scrollTimer < 300)
     return;
   scrollTimer = timer;
-  
+
   for (uint8_t i = sizeof(displayBuffer) - 1; i > 0 ; i--) // Shift array one to the left
-     displayBuffer[i] = displayBuffer[i-1];
+    displayBuffer[i] = displayBuffer[i - 1];
 
   if (trailingSpaces == 0) { // Check if it is still reading the array
     displayBuffer[0] = *(pOutputString + scrollPosition); // Read new value into array
@@ -197,9 +197,7 @@ void purchaseChecker() {
   if (buttonPressed != 0xFF && buttonPressed != lastButtonPressed) {
     if (ledOutput & motorToOutputMask[buttonPressed]) { // Check if the selected item is available
       if (counter >= price) { // Purchase item
-        if (motorOutput) { // Check if any motor is spinning
-          // TODO: Progress bar
-        } else {
+        if (!motorOutput) { // Check if any motor is spinning
           counter -= price;
           spinMotor(buttonPressed);
           scrollDisplay(nameArray[buttonPressed]);
@@ -282,12 +280,20 @@ void resetMotors() { // Set all motors to the default position
   for (uint8_t i = 0; i < sizeof(motorToOutputMask); i++)
     motorOutput |= motorToOutputMask[i]; // Set all motors on
 
+  uint32_t timer = millis();
   while (motorOutput != 0x00) {
     uint32_t input = readSwitches();
     for (uint8_t i = 0; i < sizeof(motorToOutputMask); i++) {
       if (!motorSwitchPressed(input, i)) // If switch is released stop motor
         motorOutput &= ~motorToOutputMask[i];
     }
+    if (millis() - timer > 10000) {
+      errorDisplay();
+      motorOutput = 0;
+      updateMotorsLEDs();
+      while (1);
+    }
+
     updateMotorsLEDs();
     delay(10);
   }
