@@ -40,6 +40,7 @@ const uint8_t errorLedMask = 0x02; //, greenLedMask = 0x01; // The green LED doe
 
 uint8_t motorOutput, ledOutput, oldMotorOutput, oldLedOutput;
 uint32_t motorTimer;
+bool motorIsStuck[6];
 
 void setup() {
   Serial.begin(115200);
@@ -108,7 +109,7 @@ void loop() {
 
   if (displayScrolling)
     updateScroll();
-  else if (counter != lastCounter || (waitAfterButtonPress && (millis() - purchaseTimer > 1000))) { // Only update the LED matrix if a coin has been inserted or 1s after purchaseChecker() has printed something to the LED matrix
+  else if ((!waitAfterButtonPress && counter != lastCounter) || (waitAfterButtonPress && (millis() - purchaseTimer > 1000))) { // Only update the LED matrix if a coin has been inserted or 1s after purchaseChecker() has printed something to the LED matrix
     showValue(counter);
     lastCounter = counter;
     waitAfterButtonPress = false;
@@ -179,8 +180,15 @@ void checkStopMotor() { // Stops motors after is has done a half revolution
     }
   }
   
-  if (motorOutput && millis() - motorTimer > 10000) // If the motor has been turning more than 10s, then it must be stuck
-    error();
+  if (motorOutput && millis() - motorTimer > 10000) { // If the motor has been turning more than 10s, then it must be stuck
+    for (uint8_t i = 0; i < sizeof(motorToOutputMask); i++) {
+      if (motorOutput & motorToOutputMask[i]) { // Motor is running
+        counter += priceArray[i]; // Give back credit
+        motorStuck(i);
+        showError(); // Show error for 1s
+      }
+    }
+  }
 }
 
 // TODO: If there is not enough money blink price
@@ -210,13 +218,16 @@ void purchaseChecker() {
         purchaseTimer = millis(); // Set up timer, so it clears it after a set amount of time
         waitAfterButtonPress = true;
       }
-    } else {
-      errorDisplay();
-      purchaseTimer = millis(); // Set up timer, so it clears it after a set amount of time
-      waitAfterButtonPress = true;
-    }
+    } else
+      showError(); // Show error for 1s
   }
   lastButtonPressed = buttonPressed;
+}
+
+void showError() {
+  errorDisplay();
+  purchaseTimer = millis(); // Set up timer, so it clears it after a set amount of time
+  waitAfterButtonPress = true;
 }
 
 void cointInterrupt() {
@@ -299,23 +310,24 @@ void resetMotors() { // Set all motors to the default position
       if (!motorSwitchPressed(input, i)) // If switch is released stop motor
         motorOutput &= ~motorToOutputMask[i];
     }
-    if (millis() - timer > 10000)
-      error();
+    if (millis() - timer > 10000) { // Is must be stuck
+      for (uint8_t i = 0; i < sizeof(motorToOutputMask); i++) {
+        if (motorOutput & motorToOutputMask[i]) // Motor is running
+          motorStuck(i);
+      }
+    }
     updateMotorsLEDs();
     delay(10);
   }
 }
 
-void error() {
-  errorDisplay();
-  motorOutput = 0;
-  ledOutput = 0;
-  updateMotorsLEDs();
-  while (1);
+void motorStuck(uint8_t motor) {
+  motorOutput &= ~motorToOutputMask[motor]; // Turn off motor
+  motorIsStuck[motor] = true;
 }
 
 bool checkSlot(uint32_t input, uint8_t motor) {
-  return !(input & motorToInputMask[motor]);
+  return !(input & motorToInputMask[motor]) && !motorIsStuck[motor];
 }
 
 bool motorSwitchPressed(uint32_t input, uint8_t motor) {
