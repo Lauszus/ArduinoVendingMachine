@@ -13,7 +13,7 @@ enum Letter {
   
   E = 0x86,
   r = 0xAF,
-  line = 0xBF, // '-'
+  dash = 0xBF, // '-'
   
   P = 0x8C,
   S = 0x92,

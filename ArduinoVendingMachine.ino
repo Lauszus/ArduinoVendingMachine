@@ -235,11 +235,11 @@ void clearDisplay() {
 
 void errorDisplay() {
   uint8_t output[5];
-  output[4] = line; // '-'
+  output[4] = dash; // '-'
   output[3] = E; // 'E'
   output[2] = r; // 'r'
   output[1] = r; // 'r'
-  output[0] = line; // '-'
+  output[0] = dash; // '-'
   printDisplay(output);
 }
 void updateDisplay(uint16_t input) {
