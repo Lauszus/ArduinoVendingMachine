@@ -7,7 +7,7 @@ enum Letter {
   OFF = 0xFF,
 
   C = 0xC6,
-  O = 0xC0,
+  O = 0xA3, // large O: 0xC0,
   L = 0xC7,
   A = 0x88,
 
@@ -31,6 +31,7 @@ enum Letter {
 
   V = 0xC1,
   d = 0xA1,
+  u = 0xE3,
 
   i = 0xEF,
   g = 0x90,
@@ -43,5 +44,6 @@ const uint8_t PEPSI[] = { P, E, P, S, I, OFF };
 const uint8_t FANTA[] = { F, A, n, T1, T2 , A, OFF };
 const uint8_t FAXE[] = { F, A, X, E, OFF };
 const uint8_t BEER[] = { B, E, E, r, OFF };
+const uint8_t NO_REFUND[] = { N, O, OFF, r, E, F, U, n, d, OFF };
 
 #endif
