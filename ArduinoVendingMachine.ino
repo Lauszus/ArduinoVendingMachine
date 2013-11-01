@@ -9,7 +9,7 @@
 // Change price of the items here:
 const uint8_t priceArray[] = { 5, 5, 5, 5, 5, 5 };
 // Change the name of the item here:
-const uint8_t* nameArray[] = { FANTA, FANTA, COLA, COLA, FAXE, FAXE }; // See in ArduinoVendingMachine.h for the possible names. If the one you need is not present then type NULL instead
+const uint8_t *nameArray[] = { FANTA, FANTA, COLA, COLA, FAXE, FAXE }; // See in ArduinoVendingMachine.h for the possible names. If the one you need is not present then type NULL instead
 
 
 // Do not change anything else below this line!
@@ -22,7 +22,7 @@ const uint8_t clockPinLED = A1, dataPinLED = A2, latchPinLED = A0, resetPinLED =
 const uint8_t numbers[] = { 0xC0, 0xF9, 0xA4, 0xB0, 0x99, 0x92, 0x82, 0xF8, 0x80, 0x90 }; // Numbers for LED matrix
 
 uint8_t displayBuffer[5];
-uint8_t* pOutputString;
+uint8_t *pOutputString;
 bool displayScrolling;
 uint8_t scrollPosition, trailingSpaces;
 uint32_t scrollTimer;
@@ -99,6 +99,8 @@ void loop() {
       scrollDisplay(FAXE);
     else if (input == 'B')
       scrollDisplay(BEER);
+    else if (input == 'N')
+      scrollDisplay(NO_REFUND);
   }
 
   checkStopMotor(); // Check if a motor has turned a half revolution
@@ -116,7 +118,7 @@ void loop() {
   }
 }
 
-void scrollDisplay(const uint8_t* output) {
+void scrollDisplay(const uint8_t *output) {
   if (output == NULL)
     return;
   pOutputString = (uint8_t*)output;
@@ -124,7 +126,7 @@ void scrollDisplay(const uint8_t* output) {
   scrollPosition = 0;
   trailingSpaces = 0;
   scrollTimer = 0;
-  memset(displayBuffer, OFF, sizeof(displayBuffer)); // Initialize all to OFF
+  memset(displayBuffer, SPACE, sizeof(displayBuffer)); // Initialize all to off
 }
 
 void updateScroll() { // This should be called regularly after scrollDisplay() is called
@@ -138,9 +140,10 @@ void updateScroll() { // This should be called regularly after scrollDisplay() i
 
   if (trailingSpaces == 0) { // Check if it is still reading the array
     displayBuffer[0] = *(pOutputString + scrollPosition); // Read new value into array
-    if (displayBuffer[0] == OFF) // End char found
+    if (displayBuffer[0] == OFF) { // End char found
+      displayBuffer[0] = SPACE; // Set LEDs off
       trailingSpaces++;
-    else
+    } else
       scrollPosition++;
   } else
     trailingSpaces++; // End char is found, so just add trailing spaces until text is fully scrolled out
@@ -179,7 +182,7 @@ void checkStopMotor() { // Stops motors after is has done a half revolution
       ledOutput &= ~errorLedMask;
     }
   }
-  
+
   if (motorOutput && millis() - motorTimer > 10000) { // If the motor has been turning more than 10s, then it must be stuck
     for (uint8_t i = 0; i < sizeof(motorToOutputMask); i++) {
       if (motorOutput & motorToOutputMask[i]) { // Motor is running
@@ -267,29 +270,29 @@ void showValue(uint16_t input) {
   output[4] = (uint16_t)floor(input / 10000) % 10;
 
   if (input < 10)
-    output[1] = OFF;
+    output[1] = SPACE;
   else
     output[1] = numbers[output[1]];
 
   if (input < 100)
-    output[2] = OFF;
+    output[2] = SPACE;
   else
     output[2] = numbers[output[2]];
 
   if (input < 1000)
-    output[3] = OFF;
+    output[3] = SPACE;
   else
     output[3] = numbers[output[3]];
 
   if (input < 10000)
-    output[4] = OFF;
+    output[4] = SPACE;
   else
     output[4] = numbers[output[4]];
 
   printDisplay(output);
 }
 
-void printDisplay(uint8_t* output) {
+void printDisplay(uint8_t *output) {
   digitalWrite(latchPinLED, LOW);
   shiftOut(dataPinLED, clockPinLED, MSBFIRST, output[0]);
   shiftOut(dataPinLED, clockPinLED, MSBFIRST, output[1]);
@@ -353,7 +356,7 @@ void updateMotorsLEDs() {
 uint32_t readSwitches() {
   digitalWrite(latchPinIn, LOW);
   delayMicroseconds(20);
-  digitalWrite(latchPinIn, HIGH); // Ground latchPin and hold low for as long as you are transmitting
+  digitalWrite(latchPinIn, HIGH);
   uint32_t input = shiftIn(dataPinIn, clockPinIn, LSBFIRST);
   input |= (uint16_t)shiftIn(dataPinIn, clockPinIn, LSBFIRST) << 8;
   input |= (uint32_t)shiftIn(dataPinIn, clockPinIn, LSBFIRST) << 16;
