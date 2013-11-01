@@ -10,6 +10,8 @@
 const uint8_t priceArray[] = { 5, 5, 5, 5, 5, 5 };
 // Change the name of the item here:
 const uint8_t *nameArray[] = { FANTA, FANTA, COLA, COLA, FAXE, FAXE }; // See in ArduinoVendingMachine.h for the possible names. If the one you need is not present then type NULL instead
+// Change value of the coin slots:
+const uint8_t coinSlotValue[] = { 5, 10, 0 };
 
 
 // Do not change anything else below this line!
@@ -41,6 +43,11 @@ const uint8_t errorLedMask = 0x02; //, greenLedMask = 0x01; // The green LED doe
 uint8_t motorOutput, ledOutput, oldMotorOutput, oldLedOutput;
 uint32_t motorTimer;
 bool motorIsStuck[6];
+
+const uint8_t coinSolenoid[] = { 10, A3, A4 };
+const uint8_t coinSlot[] = { A5, A6, A7 };
+const uint8_t coinReturnMask = 0x01;
+const uint8_t COIN_EMPTY = 500;
 
 void setup() {
   Serial.begin(115200);
@@ -78,6 +85,12 @@ void setup() {
   digitalWrite(clockPinIn, LOW);
   digitalWrite(latchPinIn, HIGH);
 
+  // Setup outputs for solenoids
+  for (uint8_t i = 0; i < sizeof(coinSolenoid); i++) {
+    pinMode(coinSolenoid[i], OUTPUT);
+    digitalWrite(coinSolenoid[i], LOW); // Make sure it is low by default
+  }
+
   // Update display and set motors to the default position
   showBoot();
   resetMotors(); // Reset all motors to the default position
@@ -109,12 +122,61 @@ void loop() {
 
   purchaseChecker(); // Check if a button has been pressed
 
+  coinReturnCheck();
+
   if (displayScrolling)
     updateScroll();
   else if ((!waitAfterButtonPress && counter != lastCounter) || (waitAfterButtonPress && (millis() - purchaseTimer > 1000))) { // Only update the LED matrix if a coin has been inserted or 1s after purchaseChecker() has printed something to the LED matrix
     showValue(counter);
     lastCounter = counter;
     waitAfterButtonPress = false;
+  }
+}
+
+// TODO: Figure out what to do it a slot gets empty
+void coinReturnCheck() {
+  uint8_t sortedArray[sizeof(coinSlotValue)];
+  memcpy(sortedArray, coinSlotValue, sizeof(coinSlotValue));
+  sortArray(sortedArray, sizeof(sortedArray));
+
+  /*for (uint8_t i = 0; i < 3; i++)
+    Serial.println(sortedArray[i]);*/
+
+  if (counter && readSwitches() & coinReturnMask) {
+    for (uint8_t i = 0; i < sizeof(sortedArray); i++) {
+      for (uint8_t j = 0; j < sizeof(coinSlotValue); j++) {
+        if (coinSlotValue[j] == sortedArray[i]) {
+          while (counter >= coinSlotValue[j]) {
+            if (analogRead(coinSlot[j]) < COIN_EMPTY)
+              break;
+            else {
+              /*
+              digitalWrite(coinSolenoid[i], HIGH);
+              delay(250);
+              digitalWrite(coinSolenoid[i], LOW);
+              */
+              counter -= coinSlotValue[j];
+              Serial.println(coinSlotValue[j]);
+              delay(100);
+            }
+          }
+        }
+      }
+    }
+    if (counter != 0)
+      scrollDisplay(NO_REFUND);
+  }
+}
+
+void sortArray(uint8_t *input, uint8_t size) { // Source: http://www.tenouk.com/cpluscodesnippet/sortarrayelementasc.html
+  for (uint8_t i = 1; i <= (size-1); i++) {
+    for (uint8_t j = 0; j <= (size-2); j++) {
+      if (input[j] < input[j + 1]) {
+        uint8_t hold = input[j];
+        input[j] = input[j + 1];
+        input[j + 1] = hold;
+      }
+    }
   }
 }
 

@@ -50,7 +50,7 @@ const uint8_t NO_REFUND[] = { n, o, SPACE, r, E, F, u, n, d, OFF };
 
 // Function prototypes
 void coinReturnCheck();
-uint8_t getMaxPos(uint8_t *array, uint8_t size, uint8_t less, uint8_t *pos);
+void sortArray(uint8_t *input, uint8_t size);
 void scrollDisplay(const uint8_t *output);
 void updateScroll();
 void checkAllSlots();
