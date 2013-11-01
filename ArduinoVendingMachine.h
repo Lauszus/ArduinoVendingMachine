@@ -49,6 +49,7 @@ const uint8_t BEER[] = { B, E, E, r, OFF };
 const uint8_t NO_REFUND[] = { n, o, SPACE, r, E, F, u, n, d, OFF };
 
 // Function prototypes
+bool checkCoinSlots();
 void coinReturnCheck();
 void sortArray(uint8_t *input, uint8_t size);
 void scrollDisplay(const uint8_t *output);

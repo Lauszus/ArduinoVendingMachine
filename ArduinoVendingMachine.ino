@@ -11,11 +11,12 @@ const uint8_t priceArray[] = { 5, 5, 5, 5, 5, 5 };
 // Change the name of the item here:
 const uint8_t *nameArray[] = { FANTA, FANTA, COLA, COLA, FAXE, FAXE }; // See in ArduinoVendingMachine.h for the possible names. If the one you need is not present then type NULL instead
 // Change value of the coin slots:
-const uint8_t coinSlotValue[] = { 5, 10, 0 };
+const uint8_t coinSlotValue[] = { 5, 0, 10 }; // Coin slots from right to left - note that the middle one is not connected at the moment
+uint8_t coinSlotLeft[] = { 6, 0, 5}; // Coins there is in the slot when it thinks it is empty - with safety margin of 1
 
 
 // Do not change anything else below this line!
-const uint8_t coinPin = 2;  // Analog input pin that the coin validator is attached to
+const uint8_t coinPin = 2; // Interrupt pin connected to the coin validator pulse pin
 uint8_t lastButtonPressed;
 uint32_t purchaseTimer;
 bool waitAfterButtonPress;
@@ -44,10 +45,10 @@ uint8_t motorOutput, ledOutput, oldMotorOutput, oldLedOutput;
 uint32_t motorTimer;
 bool motorIsStuck[6];
 
-const uint8_t coinSolenoid[] = { 10, A3, A4 };
-const uint8_t coinSlot[] = { A5, A6, A7 };
-const uint8_t coinReturnMask = 0x01;
-const uint8_t COIN_EMPTY = 500;
+const uint8_t coinSolenoid[] = { 10, 0, A3 }; // Connected to the solenoids
+const uint8_t coinSlot[] = { A4, 0, A5 }; // Analog input used to check if the coin slots are empty
+const uint16_t coinReturnMask = 0x8000; // Mask for return button
+const uint8_t COIN_EMPTY = 500; // If the ADC value gets below this value, then the coin slot is empty
 
 void setup() {
   Serial.begin(115200);
@@ -94,7 +95,10 @@ void setup() {
   // Update display and set motors to the default position
   showBoot();
   resetMotors(); // Reset all motors to the default position
-  showValue(counter); // Update display to show counter value
+  if (!checkCoinSlots())
+    scrollDisplay(NO_REFUND); // If there is no coins left show "No refund"
+  else
+    showValue(counter); // Update display to show counter value
 }
 
 void loop() {
@@ -133,44 +137,53 @@ void loop() {
   }
 }
 
-// TODO: Figure out what to do it a slot gets empty
+bool checkCoinSlots() {
+  bool output = false;
+  for (uint8_t i = 0; i < sizeof(coinSlot); i++) {
+    if (coinSlotValue[i] > 0 && analogRead(coinSlot[i]) > COIN_EMPTY) // Check if coin slot is empty
+      output = true;
+    else
+      coinSlotLeft[i] = 0;
+  }
+  return output;
+}
+
 void coinReturnCheck() {
-  uint8_t sortedArray[sizeof(coinSlotValue)];
-  memcpy(sortedArray, coinSlotValue, sizeof(coinSlotValue));
-  sortArray(sortedArray, sizeof(sortedArray));
+  if (counter && !(readSwitches() & coinReturnMask)) {
+    uint8_t sortedArray[sizeof(coinSlotValue)];
+    memcpy(sortedArray, coinSlotValue, sizeof(coinSlotValue)); // Copy array
+    sortArray(sortedArray, sizeof(sortedArray)); // Sort the array in descending order
 
-  /*for (uint8_t i = 0; i < 3; i++)
-    Serial.println(sortedArray[i]);*/
-
-  if (counter && readSwitches() & coinReturnMask) {
     for (uint8_t i = 0; i < sizeof(sortedArray); i++) {
       for (uint8_t j = 0; j < sizeof(coinSlotValue); j++) {
-        if (coinSlotValue[j] == sortedArray[i]) {
-          while (counter >= coinSlotValue[j]) {
-            if (analogRead(coinSlot[j]) < COIN_EMPTY)
+        if (sortedArray[i] > 0 && coinSlotValue[j] == sortedArray[i]) {
+          while (counter >= coinSlotValue[j]) { // Keep releasing coins until the counter is lower than the value
+            if (analogRead(coinSlot[j]) < COIN_EMPTY && coinSlotLeft[j] == 0) // Check if coin slot is empty
               break;
             else {
-              /*
-              digitalWrite(coinSolenoid[i], HIGH);
+              digitalWrite(coinSolenoid[j], HIGH); // Pulse solenoid
               delay(250);
-              digitalWrite(coinSolenoid[i], LOW);
-              */
+              digitalWrite(coinSolenoid[j], LOW);
+              delay(250); // Make sure coin is released
+
+              if (analogRead(coinSlot[j]) < COIN_EMPTY)
+                coinSlotLeft[j]--;
+
               counter -= coinSlotValue[j];
-              Serial.println(coinSlotValue[j]);
-              delay(100);
+              showValue(counter);
             }
           }
         }
       }
     }
     if (counter != 0)
-      scrollDisplay(NO_REFUND);
+      scrollDisplay(NO_REFUND); // If counter is not 0 by now, then there is not enough coins left
   }
 }
 
-void sortArray(uint8_t *input, uint8_t size) { // Source: http://www.tenouk.com/cpluscodesnippet/sortarrayelementasc.html
-  for (uint8_t i = 1; i <= (size-1); i++) {
-    for (uint8_t j = 0; j <= (size-2); j++) {
+void sortArray(uint8_t *input, uint8_t size) { // Inspired by: http://www.tenouk.com/cpluscodesnippet/sortarrayelementasc.html
+  for (uint8_t i = 1; i < size; i++) {
+    for (uint8_t j = 0; j < size-1; j++) {
       if (input[j] < input[j + 1]) {
         uint8_t hold = input[j];
         input[j] = input[j + 1];
