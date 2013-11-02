@@ -1,10 +1,11 @@
 #ifndef _ArduinoVendingMachine_h_
 #define _ArduinoVendingMachine_h_
 
-#include <stdint.h>
+#include <Arduino.h>
 
 enum Letter {
-  OFF = 0xFF,
+  OFF = 0x00,
+  SPACE = 0xFF,
 
   C = 0xC6,
   O = 0xC0,
@@ -45,6 +46,30 @@ const uint8_t PEPSI[] = { P, E, P, S, I, OFF };
 const uint8_t FANTA[] = { F, A, n, T1, T2 , A, OFF };
 const uint8_t FAXE[] = { F, A, X, E, OFF };
 const uint8_t BEER[] = { B, E, E, r, OFF };
-const uint8_t NO_REFUND[] = { N, o, OFF, r, E, F, U, n, d, OFF };
+const uint8_t NO_REFUND[] = { n, o, SPACE, r, E, F, u, n, d, OFF };
+
+// Function prototypes
+bool checkCoinSlots();
+void coinReturnCheck();
+void sortArray(uint8_t *input, uint8_t size);
+void scrollDisplay(const uint8_t *output);
+void updateScroll();
+void checkAllSlots();
+void spinMotor(uint8_t motor);
+void checkStopMotor();
+void purchaseChecker();
+void showError();
+void cointInterrupt();
+void showBoot();
+void errorDisplay();
+void showValue(uint16_t input);
+void printDisplay(uint8_t *output);
+void resetMotors();
+void motorStuck(uint8_t motor);
+bool checkSlot(uint32_t input, uint8_t motor);
+bool motorSwitchPressed(uint32_t input, uint8_t motor);
+bool buyButtonPressed(uint32_t input, uint8_t button);
+void updateMotorsLEDs();
+uint32_t readSwitches();
 
 #endif
