@@ -46,9 +46,10 @@ uint32_t motorTimer;
 bool motorIsStuck[6];
 
 const uint8_t coinSolenoid[] = { 10, 0, A3 }; // Connected to the solenoids
-const uint8_t coinSlot[] = { A4, 0, A5 }; // Analog input used to check if the coin slots are empty
-const uint16_t coinReturnMask = 0x8000; // Mask for return button
+const uint8_t coinSlot[] = { A6, 0, A7 }; // Analog input used to check if the coin slots are empty
+const uint8_t coinReturn = A5; // Return button
 const uint8_t COIN_EMPTY = 500; // If the ADC value gets below this value, then the coin slot is empty
+uint32_t refundTimer;
 
 void setup() {
   Serial.begin(115200);
@@ -92,12 +93,15 @@ void setup() {
     digitalWrite(coinSolenoid[i], LOW); // Make sure it is low by default
   }
 
+  pinMode(coinReturn, INPUT_PULLUP);
+
   // Update display and set motors to the default position
   showBoot();
   resetMotors(); // Reset all motors to the default position
-  if (!checkCoinSlots())
+  if (!checkCoinSlots()) {
     scrollDisplay(NO_REFUND); // If there is no coins left show "No refund"
-  else
+    refundTimer = millis();
+  } else
     showValue(counter); // Update display to show counter value
 }
 
@@ -130,7 +134,10 @@ void loop() {
 
   if (displayScrolling)
     updateScroll();
-  else if ((!waitAfterButtonPress && counter != lastCounter) || (waitAfterButtonPress && (millis() - purchaseTimer > 1000))) { // Only update the LED matrix if a coin has been inserted or 1s after purchaseChecker() has printed something to the LED matrix
+  else if (!checkCoinSlots() && millis() - refundTimer > 10000) { // Scroll "No refund" every 10s
+    scrollDisplay(NO_REFUND); // If there is no coins left show "No refund"
+    refundTimer = millis();
+  } else if ((!waitAfterButtonPress && counter != lastCounter) || (waitAfterButtonPress && (millis() - purchaseTimer > 1000))) { // Only update the LED matrix if a coin has been inserted or 1s after purchaseChecker() has printed something to the LED matrix
     showValue(counter);
     lastCounter = counter;
     waitAfterButtonPress = false;
@@ -149,7 +156,7 @@ bool checkCoinSlots() {
 }
 
 void coinReturnCheck() {
-  if (counter && !(readSwitches() & coinReturnMask)) {
+  if (counter && !(digitalRead(coinReturn))) {
     uint8_t sortedArray[sizeof(coinSlotValue)];
     memcpy(sortedArray, coinSlotValue, sizeof(coinSlotValue)); // Copy array
     sortArray(sortedArray, sizeof(sortedArray)); // Sort the array in descending order
@@ -176,8 +183,10 @@ void coinReturnCheck() {
         }
       }
     }
-    if (counter != 0)
+    if (counter != 0) {
       scrollDisplay(NO_REFUND); // If counter is not 0 by now, then there is not enough coins left
+      refundTimer = millis();
+    }
   }
 }
 
