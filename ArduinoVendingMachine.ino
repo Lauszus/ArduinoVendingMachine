@@ -55,7 +55,7 @@ void setup() {
   Serial.begin(115200);
 
   // Setup coin input
-  pinMode(coinPin, INPUT);
+  pinMode(coinPin, INPUT_PULLUP);
   counter = lastCounter = 0;
   attachInterrupt(0, cointInterrupt, CHANGE);
 
