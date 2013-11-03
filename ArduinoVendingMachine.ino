@@ -97,6 +97,7 @@ void setup() {
 
   // Update display and set motors to the default position
   showBoot();
+  delay(500); // Make sure the voltage is stable at the other electronics
   resetMotors(); // Reset all motors to the default position
   if (!checkCoinSlots()) {
     scrollDisplay(NO_REFUND); // If there is no coins left show "No refund"
