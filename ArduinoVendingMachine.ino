@@ -318,6 +318,32 @@ void showError() {
   waitAfterButtonPress = true;
 }
 
+void showErrorJam() {
+  uint8_t output[5];
+  output[4] = OFF; // '-'
+  output[3] = J;
+  output[2] = a;
+  output[1] = r;
+  output[0] = n; // '-'
+  printDisplay(output);
+
+  purchaseTimer = millis(); // Set up timer, so it clears it after a set amount of time
+  waitAfterButtonPress = true;
+}
+
+void showErrorDry() {
+  uint8_t output[5];
+  output[4] = OFF; // '-'
+  output[3] = d;
+  output[2] = r;
+  output[1] = Y;
+  output[0] = OFF; // '-'
+  printDisplay(output);
+
+  purchaseTimer = millis(); // Set up timer, so it clears it after a set amount of time
+  waitAfterButtonPress = true;
+}
+
 void cointInterrupt() {
   bool input = PIND & (1 << PIND2); // Read pin 2 directly using the port registers
   if (input && !lastCoinInput)
