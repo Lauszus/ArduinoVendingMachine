@@ -54,11 +54,6 @@ uint32_t refundTimer;
 void setup() {
   Serial.begin(115200);
 
-  // Setup coin input
-  pinMode(coinPin, INPUT_PULLUP);
-  counter = lastCounter = 0;
-  attachInterrupt(0, cointInterrupt, CHANGE);
-
   // Pins for LED matrix
   pinMode(clockPinLED, OUTPUT);
   pinMode(latchPinLED, OUTPUT);
@@ -97,7 +92,13 @@ void setup() {
 
   // Update display and set motors to the default position
   showBoot();
-  delay(500); // Make sure the voltage is stable at the other electronics
+    
+  // Setup coin input
+  pinMode(coinPin, INPUT_PULLUP);
+  delay(300);
+  counter = lastCounter = 0;
+  attachInterrupt(0, cointInterrupt, CHANGE);
+//  delay(500); // Make sure the voltage is stable at the other electronics
   resetMotors(); // Reset all motors to the default position
   if (!checkCoinSlots()) {
     scrollDisplay(NO_REFUND); // If there is no coins left show "No refund"
@@ -135,7 +136,7 @@ void loop() {
 
   if (displayScrolling)
     updateScroll();
-  else if (!checkCoinSlots() && millis() - refundTimer > 10000) { // Scroll "No refund" every 10s
+  else if (!checkCoinSlots() && (millis() - refundTimer > 10000)) { // Scroll "No refund" every 10s
     scrollDisplay(NO_REFUND); // If there is no coins left show "No refund"
     refundTimer = millis();
   } else if ((!waitAfterButtonPress && counter != lastCounter) || (waitAfterButtonPress && (millis() - purchaseTimer > 1000))) { // Only update the LED matrix if a coin has been inserted or 1s after purchaseChecker() has printed something to the LED matrix
@@ -157,7 +158,9 @@ bool checkCoinSlots() {
 }
 
 void coinReturnCheck() {
-  if (counter && !(digitalRead(coinReturn))) {
+  int cr = analogRead(coinReturn); // Normally HIGH
+  if (counter && cr < 50) {
+
     uint8_t sortedArray[sizeof(coinSlotValue)];
     memcpy(sortedArray, coinSlotValue, sizeof(coinSlotValue)); // Copy array
     sortArray(sortedArray, sizeof(sortedArray)); // Sort the array in descending order
@@ -185,8 +188,8 @@ void coinReturnCheck() {
       }
     }
     if (counter != 0) {
-      scrollDisplay(NO_REFUND); // If counter is not 0 by now, then there is not enough coins left
-      refundTimer = millis();
+//      scrollDisplay(NO_REFUND); // If counter is not 0 by now, then there is not enough coins left
+      refundTimer = millis()+10000;
     }
   }
 }
@@ -268,12 +271,12 @@ void checkStopMotor() { // Stops motors after is has done a half revolution
     }
   }
 
-  if (motorOutput && millis() - motorTimer > 10000) { // If the motor has been turning more than 10s, then it must be stuck
+  if (motorOutput && millis() - motorTimer > 12000) { // If the motor has been turning more than 10s, then it must be stuck
     for (uint8_t i = 0; i < sizeof(motorToOutputMask); i++) {
       if (motorOutput & motorToOutputMask[i]) { // Motor is running
         counter += priceArray[i]; // Give back credit
         motorStuck(i);
-        showError(); // Show error for 1s
+        showErrorJam(); // Show error for 1s
       }
     }
   }
@@ -307,7 +310,7 @@ void purchaseChecker() {
         waitAfterButtonPress = true;
       }
     } else
-      showError(); // Show error for 1s
+      showErrorDry(); // Show error for 1s
   }
   lastButtonPressed = buttonPressed;
 }
@@ -320,9 +323,9 @@ void showError() {
 
 void showErrorJam() {
   uint8_t output[5];
-  output[4] = OFF; // '-'
-  output[3] = J;
-  output[2] = a;
+  output[4] = SPACE; // '-'
+  output[3] = j;
+  output[2] = A;
   output[1] = r;
   output[0] = n; // '-'
   printDisplay(output);
@@ -333,11 +336,11 @@ void showErrorJam() {
 
 void showErrorDry() {
   uint8_t output[5];
-  output[4] = OFF; // '-'
+  output[4] = SPACE; // '-'
   output[3] = d;
   output[2] = r;
   output[1] = Y;
-  output[0] = OFF; // '-'
+  output[0] = SPACE; // '-'
   printDisplay(output);
 
   purchaseTimer = millis(); // Set up timer, so it clears it after a set amount of time
