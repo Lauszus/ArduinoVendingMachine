@@ -2,6 +2,7 @@
 #define _ArduinoVendingMachine_h_
 
 #include <Arduino.h>
+#include "EEPROMAnything.h"
 
 enum Letter {
   OFF = 0x00,

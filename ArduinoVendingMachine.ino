@@ -31,7 +31,7 @@ uint8_t scrollPosition, trailingSpaces;
 uint32_t scrollTimer;
 
 bool lastCoinInput;
-volatile uint16_t counter;
+volatile uint16_t counter, totalCoinsValue; // Counter for the credit currently in the machine and the total value of coins that have been put into the machine
 uint16_t lastCounter;
 
 const uint8_t clockPinOut = 3, dataPinOut = 5, latchPinOut = 4, resetPinOut = 6; // Pins for driving the motors
@@ -90,21 +90,22 @@ void setup() {
 
   pinMode(coinReturn, INPUT_PULLUP);
 
+  counter = lastCounter = 0;
+  EEPROM_readAnything(0, totalCoinsValue); // Read value from EEPROM
+
   // Update display and set motors to the default position
   showBoot();
-
-  // Setup coin input
-  pinMode(coinPin, INPUT_PULLUP);
-  delay(300); // Make sure the voltage is stable at the other electronics
-  counter = lastCounter = 0;
-  attachInterrupt(0, cointInterrupt, CHANGE);
-
   resetMotors(); // Reset all motors to the default position
   if (!checkCoinSlots()) {
     scrollDisplay(NO_REFUND); // If there is no coins left show "No refund"
     refundTimer = millis();
   } else
     showValue(counter); // Update display to show counter value
+
+  // Setup coin input
+  pinMode(coinPin, INPUT_PULLUP);
+  delay(300); // Make sure the voltage is stable at the other electronics
+  attachInterrupt(0, cointInterrupt, CHANGE);
 }
 
 void loop() {
@@ -124,6 +125,13 @@ void loop() {
       scrollDisplay(BEER);
     else if (input == 'N')
       scrollDisplay(NO_REFUND);
+    else if (input == 'E')
+      Serial.println(totalCoinsValue);
+    else if (input == 'R') {
+      EEPROM_updateAnything(0, 0);
+      totalCoinsValue = 0;
+      Serial.println("EEPROM was reset");
+    }
   }
 
   checkStopMotor(); // Check if a motor has turned a half revolution
@@ -141,6 +149,7 @@ void loop() {
     refundTimer = millis();
   } else if ((!waitAfterButtonPress && counter != lastCounter) || (waitAfterButtonPress && (millis() - purchaseTimer > 1000))) { // Only update the LED matrix if a coin has been inserted or 1s after purchaseChecker() has printed something to the LED matrix
     showValue(counter);
+    EEPROM_updateAnything(0, totalCoinsValue);
     lastCounter = counter;
     waitAfterButtonPress = false;
   }
@@ -348,8 +357,10 @@ void showErrorDry() {
 
 void cointInterrupt() {
   bool input = PIND & (1 << PIND2); // Read pin 2 directly using the port registers
-  if (input && !lastCoinInput)
+  if (input && !lastCoinInput) {
     counter += 5;
+    totalCoinsValue += 5;
+  }
   lastCoinInput = input;
   displayScrolling = false;
 }
