@@ -92,13 +92,13 @@ void setup() {
 
   // Update display and set motors to the default position
   showBoot();
-    
+
   // Setup coin input
   pinMode(coinPin, INPUT_PULLUP);
-  delay(300);
+  delay(300); // Make sure the voltage is stable at the other electronics
   counter = lastCounter = 0;
   attachInterrupt(0, cointInterrupt, CHANGE);
-//  delay(500); // Make sure the voltage is stable at the other electronics
+
   resetMotors(); // Reset all motors to the default position
   if (!checkCoinSlots()) {
     scrollDisplay(NO_REFUND); // If there is no coins left show "No refund"
@@ -136,7 +136,7 @@ void loop() {
 
   if (displayScrolling)
     updateScroll();
-  else if (!checkCoinSlots() && (millis() - refundTimer > 10000)) { // Scroll "No refund" every 10s
+  else if (!checkCoinSlots() && (millis() - refundTimer > 12000)) { // Scroll "No refund" every 12s
     scrollDisplay(NO_REFUND); // If there is no coins left show "No refund"
     refundTimer = millis();
   } else if ((!waitAfterButtonPress && counter != lastCounter) || (waitAfterButtonPress && (millis() - purchaseTimer > 1000))) { // Only update the LED matrix if a coin has been inserted or 1s after purchaseChecker() has printed something to the LED matrix
@@ -187,10 +187,8 @@ void coinReturnCheck() {
         }
       }
     }
-    if (counter != 0) {
-//      scrollDisplay(NO_REFUND); // If counter is not 0 by now, then there is not enough coins left
-      refundTimer = millis()+10000;
-    }
+    if (counter != 0)
+      refundTimer = 0;
   }
 }
 
@@ -271,7 +269,7 @@ void checkStopMotor() { // Stops motors after is has done a half revolution
     }
   }
 
-  if (motorOutput && millis() - motorTimer > 12000) { // If the motor has been turning more than 10s, then it must be stuck
+  if (motorOutput && millis() - motorTimer > 10000) { // If the motor has been turning more than 10s, then it must be stuck
     for (uint8_t i = 0; i < sizeof(motorToOutputMask); i++) {
       if (motorOutput & motorToOutputMask[i]) { // Motor is running
         counter += priceArray[i]; // Give back credit
@@ -323,11 +321,11 @@ void showError() {
 
 void showErrorJam() {
   uint8_t output[5];
-  output[4] = SPACE; // '-'
+  output[4] = SPACE;
   output[3] = j;
   output[2] = A;
   output[1] = r;
-  output[0] = n; // '-'
+  output[0] = n;
   printDisplay(output);
 
   purchaseTimer = millis(); // Set up timer, so it clears it after a set amount of time
@@ -336,11 +334,11 @@ void showErrorJam() {
 
 void showErrorDry() {
   uint8_t output[5];
-  output[4] = SPACE; // '-'
+  output[4] = SPACE;
   output[3] = d;
   output[2] = r;
   output[1] = Y;
-  output[0] = SPACE; // '-'
+  output[0] = SPACE;
   printDisplay(output);
 
   purchaseTimer = millis(); // Set up timer, so it clears it after a set amount of time
