@@ -64,6 +64,8 @@ void spinMotor(uint8_t motor);
 void checkStopMotor();
 void purchaseChecker();
 void showError();
+void showErrorJam();
+void showErrorDry();
 void cointInterrupt();
 void showBoot();
 void errorDisplay();
