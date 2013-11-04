@@ -1,0 +1,5 @@
+Lav webserver på Raspberry Pi
+RFID læser - alle kan få et kort som der så er penge på
+	Kan styres vha. rpi
+Lav større delay, så coin validator kører inden den starter interrupt
+Kun kald "readSwitches" én gang i hvert loop
