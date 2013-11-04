@@ -128,8 +128,8 @@ void loop() {
     else if (input == 'E')
       Serial.println(totalCoinsValue);
     else if (input == 'R') {
-      EEPROM_updateAnything(0, 0);
       totalCoinsValue = 0;
+      EEPROM_updateAnything(0, totalCoinsValue);
       Serial.println("EEPROM was reset");
     }
   }
