@@ -26,7 +26,7 @@ const uint8_t numbers[] = { 0xC0, 0xF9, 0xA4, 0xB0, 0x99, 0x92, 0x82, 0xF8, 0x80
 
 uint8_t displayBuffer[5];
 uint8_t *pOutputString;
-bool displayScrolling;
+volatile bool displayScrolling;
 uint8_t scrollPosition, trailingSpaces;
 uint32_t scrollTimer;
 
@@ -234,11 +234,12 @@ void updateScroll() { // This should be called regularly after scrollDisplay() i
   } else
     trailingSpaces++; // End char is found, so just add trailing spaces until text is fully scrolled out
 
-  if (trailingSpaces == sizeof(displayBuffer)) {
-    displayScrolling = false;
+  if (trailingSpaces == sizeof(displayBuffer))
     showValue(counter); // Show counter value on display again after scrolling the text
-  } else
+  else {
     printDisplay(displayBuffer);
+    displayScrolling = true;
+  }
 }
 
 void checkAllSlots() { // Check if any of the slots are empty
@@ -350,6 +351,7 @@ void cointInterrupt() {
   if (input && !lastCoinInput)
     counter += 5;
   lastCoinInput = input;
+  displayScrolling = false;
 }
 
 void showBoot() {
@@ -405,6 +407,7 @@ void showValue(uint16_t input) {
 }
 
 void printDisplay(uint8_t *output) {
+  displayScrolling = false;
   digitalWrite(latchPinLED, LOW);
   shiftOut(dataPinLED, clockPinLED, MSBFIRST, output[0]);
   shiftOut(dataPinLED, clockPinLED, MSBFIRST, output[1]);
