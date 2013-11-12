@@ -4,8 +4,8 @@
 The code is released under the GNU General Public License.
 _________
 
-This is the Arduino code to be used with a old vending machine which had a faulty controller board.
+This is the Arduino code to be used with an old vending machine which had a faulty controller board.
 
-The code is used with a Arduino Pro Mini.
+The code is used with an Arduino Pro Mini.
 
 For more information send me an email at <kristianl@tkjelectronics.dk>.
