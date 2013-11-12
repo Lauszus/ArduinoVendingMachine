@@ -191,9 +191,7 @@ void coinChecker() {
 }
 
 void coinReturnCheck() {
-  int cr = analogRead(coinReturn); // Normally HIGH
-  if (counter && cr < 50) {
-
+  if (counter && analogRead(coinReturn) < 50) { // The button is normally high
     uint8_t sortedArray[sizeof(coinSlotValue)];
     memcpy(sortedArray, coinSlotValue, sizeof(coinSlotValue)); // Copy array
     sortArray(sortedArray, sizeof(sortedArray)); // Sort the array in descending order
