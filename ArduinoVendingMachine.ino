@@ -31,9 +31,10 @@ uint8_t scrollPosition, trailingSpaces;
 uint32_t scrollTimer;
 
 bool lastCoinInput;
-volatile uint8_t coinPulsesRecieved; // Counter for the credit currently in the machine and the total value of coins that have been put into the machine
-uint8_t lastCoinPulsesRecieved,coins;
-uint16_t counter, lastCounter, totalCoinsValue;
+volatile uint8_t coinPulsesRecieved;
+uint8_t lastCoinPulsesRecieved;
+uint16_t counter, lastCounter;
+uint16_t totalCoinsValue; // Counter for the credit currently in the machine and the total value of coins that have been put into the machine
 uint32_t lastCoinPulseTime;
 
 const uint8_t clockPinOut = 3, dataPinOut = 5, latchPinOut = 4, resetPinOut = 6; // Pins for driving the motors
@@ -174,22 +175,19 @@ void coinChecker(){
   if(coinPulsesRecieved != lastCoinPulsesRecieved){ // only run the check if pulses has changed
     if(coinPulsesRecieved > 1){ // accept coin(s) and reset coin pulses
       cli(); // disable interrupts to make sure we don't disregard any coins
-      coins = coinPulsesRecieved/2; // TODO: shift this instead
-      coinPulsesRecieved -= coins*2; // substract "whole" coins
+      uint8_t coins = coinPulsesRecieved>>1; // get count of "whole" coins
+      coinPulsesRecieved -= coins<<1; // substract "whole" coins from pulses recieved (we could be between pulses)
       sei(); // enable interrupts again
       counter += coins*5;
       totalCoinsValue += coins*5;
       lastCoinPulseTime = 0;
     }
     lastCoinPulsesRecieved = coinPulsesRecieved;
-  } else {
-    // if pulses is 1, and has not changed for 0.5 s, reset pulse count
-    if(coinPulsesRecieved == 1){
-      if(lastCoinPulseTime == 0) // if timer is not set, the pulse was just recieved
-        lastCoinPulseTime = millis()+200; // TODO: should we overflow secure this?
-      else if(lastCoinPulseTime < millis()) // faux pulse - reset everything
-        lastCoinPulseTime = coinPulsesRecieved = lastCoinPulsesRecieved = 0;
-    }
+  } else if(coinPulsesRecieved == 1){ // if pulses is 1, and has not changed for 0.2 s, reset pulse count
+    if(lastCoinPulseTime == 0) // if timer is not set, the pulse was just recieved
+      lastCoinPulseTime = millis()+200; // TODO: should we overflow secure this?
+    else if(lastCoinPulseTime < millis()) // faux pulse - reset everything
+      lastCoinPulseTime = coinPulsesRecieved = lastCoinPulsesRecieved = 0;
   }
 }
 
