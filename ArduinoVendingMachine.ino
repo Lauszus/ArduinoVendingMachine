@@ -31,8 +31,11 @@ uint8_t scrollPosition, trailingSpaces;
 uint32_t scrollTimer;
 
 bool lastCoinInput;
-volatile uint16_t counter, totalCoinsValue; // Counter for the credit currently in the machine and the total value of coins that have been put into the machine
-uint16_t lastCounter;
+volatile uint8_t coinPulsesRecieved;
+uint8_t lastCoinPulsesRecieved;
+uint16_t counter, lastCounter;
+uint16_t totalCoinsValue; // Counter for the credit currently in the machine and the total value of coins that have been put into the machine
+uint32_t lastCoinPulseTime;
 
 const uint8_t clockPinOut = 3, dataPinOut = 5, latchPinOut = 4, resetPinOut = 6; // Pins for driving the motors
 const uint8_t clockPinIn = 11, dataPinIn = 9, latchPinIn = 7; // Pins used to check the switches
@@ -91,6 +94,7 @@ void setup() {
   pinMode(coinReturn, INPUT_PULLUP);
 
   counter = lastCounter = 0;
+  coinPulsesRecieved = lastCoinPulsesRecieved = 0;
   EEPROM_readAnything(0, totalCoinsValue); // Read value from EEPROM
 
   // Update display and set motors to the default position
@@ -137,6 +141,8 @@ void loop() {
   checkStopMotor(); // Check if a motor has turned a half revolution
   checkAllSlots(); // Check if any slot is empty
   updateMotorsLEDs(); // Send out the new values to the shift register
+  coinChecker();
+
   purchaseChecker(); // Check if a button has been pressed
   coinReturnCheck(); // Check if the coin return button is pressed
 
@@ -162,6 +168,26 @@ bool checkCoinSlots() {
       coinSlotLeft[i] = 0;
   }
   return output;
+}
+
+void coinChecker() {
+  if(coinPulsesRecieved != lastCoinPulsesRecieved){ // only run the check if pulses has changed
+    if(coinPulsesRecieved > 1){ // accept coin(s) and reset coin pulses
+      cli(); // disable interrupts to make sure we don't disregard any coins
+      uint8_t coins = coinPulsesRecieved>>1; // get count of "whole" coins
+      coinPulsesRecieved -= coins<<1; // substract "whole" coins from pulses recieved (we could be between pulses)
+      sei(); // enable interrupts again
+      counter += coins*5;
+      totalCoinsValue += coins*5;
+      lastCoinPulseTime = 0;
+    }
+    lastCoinPulsesRecieved = coinPulsesRecieved;
+  } else if(coinPulsesRecieved == 1){ // if pulses is 1, and has not changed for 0.2 s, reset pulse count
+    if(lastCoinPulseTime == 0) // if timer is not set, the pulse was just recieved
+      lastCoinPulseTime = millis()+200; // TODO: should we overflow secure this?
+    else if(lastCoinPulseTime < millis()) // faux pulse - reset everything
+      lastCoinPulseTime = coinPulsesRecieved = lastCoinPulsesRecieved = 0;
+  }
 }
 
 void coinReturnCheck() {
@@ -356,8 +382,7 @@ void showErrorDry() {
 void cointInterrupt() {
   bool input = PIND & (1 << PIND2); // Read pin 2 directly using the port registers
   if (input && !lastCoinInput) {
-    counter += 5;
-    totalCoinsValue += 5;
+    coinPulsesRecieved += 1;
   }
   lastCoinInput = input;
   displayScrolling = false;
