@@ -103,7 +103,7 @@ void setup() {
     showValue(counter); // Update display to show counter value
 
   // Setup coin input
-  pinMode(coinPin, INPUT_PULLUP);
+  pinMode(coinPin, INPUT);
   delay(300); // Make sure the voltage is stable at the other electronics
   attachInterrupt(0, cointInterrupt, CHANGE);
 }
@@ -137,10 +137,8 @@ void loop() {
   checkStopMotor(); // Check if a motor has turned a half revolution
   checkAllSlots(); // Check if any slot is empty
   updateMotorsLEDs(); // Send out the new values to the shift register
-
   purchaseChecker(); // Check if a button has been pressed
-
-  coinReturnCheck();
+  coinReturnCheck(); // Check if the coin return button is pressed
 
   if (displayScrolling)
     updateScroll();
