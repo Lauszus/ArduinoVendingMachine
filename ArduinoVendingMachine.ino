@@ -409,30 +409,26 @@ void showValue(uint16_t input) {
   uint8_t output[5];
 
   output[0] = numbers[input % 10];
-  output[1] = (uint16_t)floor(input / 10) % 10;
-  output[2] = (uint16_t)floor(input / 100) % 10;
-  output[3] = (uint16_t)floor(input / 1000) % 10;
-  output[4] = (uint16_t)floor(input / 10000) % 10;
 
   if (input < 10)
     output[1] = SPACE;
   else
-    output[1] = numbers[output[1]];
+    output[1] = numbers[(uint16_t)floor(input / 10) % 10];
 
   if (input < 100)
     output[2] = SPACE;
   else
-    output[2] = numbers[output[2]];
+    output[2] = numbers[(uint16_t)floor(input / 100) % 10];
 
   if (input < 1000)
     output[3] = SPACE;
   else
-    output[3] = numbers[output[3]];
+    output[3] = numbers[(uint16_t)floor(input / 1000) % 10];
 
   if (input < 10000)
     output[4] = SPACE;
   else
-    output[4] = numbers[output[4]];
+    output[4] = numbers[(uint16_t)floor(input / 10000) % 10];
 
   printDisplay(output);
 }
