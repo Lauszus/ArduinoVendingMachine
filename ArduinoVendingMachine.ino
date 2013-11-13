@@ -132,9 +132,19 @@ void loop() {
     else if (input == 'E')
       Serial.println(totalCoinsValue);
     else if (input == 'R') {
+      Serial.print("EEPROM was reset - old value: ");
+      Serial.println(totalCoinsValue);
       totalCoinsValue = 0;
       EEPROM_updateAnything(0, totalCoinsValue);
-      Serial.println("EEPROM was reset");
+    } else if (input == 'S') {
+      while (!Serial.available());
+      input = Serial.read();
+      if (input >= '0' && input <= '2') {
+        digitalWrite(coinSolenoid[input - '0'], HIGH); // Pulse solenoid
+        delay(250);
+        digitalWrite(coinSolenoid[input - '0'], LOW);
+        delay(250); // Make sure coin is released
+      }
     }
   }
 
