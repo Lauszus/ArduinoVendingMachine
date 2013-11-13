@@ -379,7 +379,7 @@ void showErrorDry() {
 
 void cointInterrupt() {
   bool input = PIND & (1 << PIND2); // Read pin 2 directly using the port registers
-  if (input && !lastCoinInput)
+  if (!input && lastCoinInput)
     coinPulsesRecieved++;
   lastCoinInput = input;
   displayScrolling = false;
