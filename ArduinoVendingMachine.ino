@@ -408,10 +408,19 @@ void errorDisplay() {
 void showValue(uint16_t input) {
   uint8_t output[5];
   output[0] = numbers[input % 10];
-  output[1] = input < 10 ? SPACE : numbers[(input / 10) % 10];
-  output[2] = input < 100 ? SPACE : numbers[(input / 100) % 10];
-  output[3] = input < 1000 ? SPACE : numbers[(input / 1000) % 10];
-  output[4] = input < 10000 ? SPACE : numbers[(input / 10000) % 10];
+
+  memset(output + 1, SPACE, sizeof(output) - 1); // Initialize the rest to off
+  if (input >= 10) {
+    output[1] = numbers[(input / 10) % 10];
+    if (input >= 100) {
+      output[2] = numbers[(input / 100) % 10];
+      if (input >= 1000) {
+        output[3] = numbers[(input / 1000) % 10];
+        if (input >= 10000)
+          output[4] = numbers[(input / 10000) % 10];
+      }
+    }
+  }
   printDisplay(output);
 }
 
