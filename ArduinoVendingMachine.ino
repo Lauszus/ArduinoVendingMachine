@@ -182,10 +182,10 @@ void coinChecker() {
       lastCoinPulseTime = 0;
     }
     lastCoinPulsesRecieved = coinPulsesRecieved;
-  } else if (coinPulsesRecieved == 1) { // If pulses is 1, and has not changed for 0.2s, reset pulse count
+  } else if (coinPulsesRecieved == 1) { // If pulses is 1, and has not changed for 150ms, reset pulse count
     if (lastCoinPulseTime == 0) // If timer is not set, the pulse was just recieved
-      lastCoinPulseTime = millis() + 200; // TODO: should we overflow secure this?
-    else if (lastCoinPulseTime < millis()) // Faux pulse - reset everything
+      lastCoinPulseTime = millis();
+    else if (millis() - lastCoinPulseTime > 150) // Faux pulse - reset everything
       lastCoinPulseTime = coinPulsesRecieved = lastCoinPulsesRecieved = 0;
   }
 }
