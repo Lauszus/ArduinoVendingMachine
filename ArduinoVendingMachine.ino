@@ -407,29 +407,11 @@ void errorDisplay() {
 
 void showValue(uint16_t input) {
   uint8_t output[5];
-
   output[0] = numbers[input % 10];
-
-  if (input < 10)
-    output[1] = SPACE;
-  else
-    output[1] = numbers[(uint16_t)floor(input / 10) % 10];
-
-  if (input < 100)
-    output[2] = SPACE;
-  else
-    output[2] = numbers[(uint16_t)floor(input / 100) % 10];
-
-  if (input < 1000)
-    output[3] = SPACE;
-  else
-    output[3] = numbers[(uint16_t)floor(input / 1000) % 10];
-
-  if (input < 10000)
-    output[4] = SPACE;
-  else
-    output[4] = numbers[(uint16_t)floor(input / 10000) % 10];
-
+  output[1] = input < 10 ? SPACE : numbers[(input / 10) % 10];
+  output[2] = input < 100 ? SPACE : numbers[(input / 100) % 10];
+  output[3] = input < 1000 ? SPACE : numbers[(input / 1000) % 10];
+  output[4] = input < 10000 ? SPACE : numbers[(input / 10000) % 10];
   printDisplay(output);
 }
 
