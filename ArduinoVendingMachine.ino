@@ -12,7 +12,7 @@ const uint8_t priceArray[] = { 5, 5, 5, 5, 5, 5 };
 const uint8_t *nameArray[] = { FANTA, FANTA, COLA, COLA, FAXE, FAXE }; // See in ArduinoVendingMachine.h for the possible names. If the one you need is not present then type NULL instead
 // Change value of the coin slots:
 const uint8_t coinSlotValue[] = { 5, 0, 10 }; // Coin slots from right to left - note that the middle one is not connected at the moment
-uint8_t coinSlotLeft[] = { 6, 0, 5}; // Coins there is in the slot when it thinks it is empty - with safety margin of 1
+uint8_t coinSlotLeft[] = { 6, 0, 5 }; // Coins there is in the slot when it thinks it is empty - with safety margin of 1
 
 
 // Do not change anything else below this line!
@@ -44,7 +44,7 @@ const uint8_t motorToOutputMask[] = { 0x04, 0x08, 0x10, 0x20, 0x40, 0x80 };
 const uint8_t motorToInputMask[] = { 0x02, 0x04, 0x08, 0x10, 0x20, 0x40 };
 const uint8_t errorLedMask = 0x02; //, greenLedMask = 0x01; // The green LED does not work at the moment
 
-uint8_t motorOutput, ledOutput, oldMotorOutput, oldLedOutput;
+uint8_t motorOutput, ledOutput;
 uint32_t motorTimer;
 bool motorIsStuck[6];
 
@@ -485,11 +485,6 @@ bool buyButtonPressed(uint32_t input, uint8_t button) {
 }
 
 void updateMotorsLEDs() {
-  if (ledOutput == oldLedOutput && motorOutput == oldMotorOutput)
-    return;
-  oldLedOutput = ledOutput;
-  oldMotorOutput = motorOutput;
-
   digitalWrite(latchPinOut, LOW); // Ground latchPin and hold low for as long as you are transmitting
   shiftOut(dataPinOut, clockPinOut, LSBFIRST, ledOutput);
   shiftOut(dataPinOut, clockPinOut, LSBFIRST, motorOutput);
