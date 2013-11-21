@@ -167,7 +167,6 @@ void loop() {
     refundTimer = millis();
   } else if ((!waitAfterButtonPress && counter != lastCounter) || (waitAfterButtonPress && (millis() - purchaseTimer > 1000))) { // Only update the LED matrix if a coin has been inserted or 1s after purchaseChecker() has printed something to the LED matrix
     showValue(counter);
-    EEPROM_updateAnything(0, totalUnitsDispensed);
     lastCounter = counter;
     waitAfterButtonPress = false;
   }
@@ -315,6 +314,7 @@ void checkStopMotor() { // Stops motors after is has done a half revolution
       motorOutput &= ~motorToOutputMask[i];
       ledOutput &= ~errorLedMask;
       totalUnitsDispensed++;
+      EEPROM_updateAnything(0, totalUnitsDispensed);
       Serial.print("s");Serial.println(totalUnitsDispensed);
     }
   }
