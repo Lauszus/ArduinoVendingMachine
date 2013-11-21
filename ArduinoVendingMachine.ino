@@ -33,7 +33,7 @@ uint32_t scrollTimer;
 bool lastCoinInput;
 volatile uint8_t coinPulsesRecieved;
 uint8_t lastCoinPulsesRecieved;
-uint16_t counter, totalCoinsValue; // Counter for the credit currently in the machine and the total value of coins that have been put into the machine
+uint16_t counter, totalUnitsDispensed; // Counter for the credit currently in the machine and the total value of coins that have been put into the machine
 uint16_t lastCounter;
 uint32_t lastCoinPulseTime;
 
@@ -47,6 +47,8 @@ const uint8_t errorLedMask = 0x02; //, greenLedMask = 0x01; // The green LED doe
 uint8_t motorOutput, ledOutput;
 uint32_t motorTimer;
 bool motorIsStuck[6];
+bool reportedDry[6];
+uint32_t statusLastTweeted;
 
 const uint8_t coinSolenoid[] = { 10, 0, A3 }; // Connected to the solenoids
 const uint8_t coinSlot[] = { A6, 0, A7 }; // Analog input used to check if the coin slots are empty
@@ -104,8 +106,9 @@ void setup() {
 
   pinMode(coinPin, INPUT); // Setup coin input
   counter = lastCounter = coinPulsesRecieved = lastCoinPulsesRecieved = 0;
-  EEPROM_readAnything(0, totalCoinsValue); // Read value from EEPROM
+  EEPROM_readAnything(0, totalUnitsDispensed); // Read value from EEPROM
   delay(300); // Make sure the voltage is stable
+  tweetBoot();
   attachInterrupt(0, cointInterrupt, CHANGE);
 }
 
@@ -127,12 +130,12 @@ void loop() {
     else if (input == 'N')
       scrollDisplay(NO_REFUND);
     else if (input == 'E')
-      Serial.println(totalCoinsValue);
+      Serial.println(totalUnitsDispensed);
     else if (input == 'R') {
       Serial.print("EEPROM was reset - old value: ");
-      Serial.println(totalCoinsValue);
-      totalCoinsValue = 0;
-      EEPROM_updateAnything(0, totalCoinsValue);
+      Serial.println(totalUnitsDispensed);
+      totalUnitsDispensed = 0;
+      EEPROM_updateAnything(0, totalUnitsDispensed);
     } else if (input == 'S') {
       while (!Serial.available());
       input = Serial.read();
@@ -149,9 +152,13 @@ void loop() {
   checkAllSlots(); // Check if any slot is empty
   updateMotorsLEDs(); // Send out the new values to the shift register
   coinChecker(); // Check if any coins have been inserted
+  updateDry(); // Check for empty slots, and tweet if any slots become empty
 
   purchaseChecker(); // Check if a button has been pressed
   coinReturnCheck(); // Check if the coin return button is pressed
+
+  if (millis() - statusLastTweeted > 86400000)
+    tweetStatus(); // Tweet status once per day
 
   if (displayScrolling)
     updateScroll();
@@ -160,7 +167,7 @@ void loop() {
     refundTimer = millis();
   } else if ((!waitAfterButtonPress && counter != lastCounter) || (waitAfterButtonPress && (millis() - purchaseTimer > 1000))) { // Only update the LED matrix if a coin has been inserted or 1s after purchaseChecker() has printed something to the LED matrix
     showValue(counter);
-    EEPROM_updateAnything(0, totalCoinsValue);
+    EEPROM_updateAnything(0, totalUnitsDispensed);
     lastCounter = counter;
     waitAfterButtonPress = false;
   }
@@ -185,7 +192,7 @@ void coinChecker() {
       coinPulsesRecieved -= coins << 1; // Substract "whole" coins from pulses recieved (we could be between pulses)
       sei(); // Enable interrupts again
       counter += coins * 5;
-      totalCoinsValue += coins * 5;
+      //totalCoinsValue += coins * 5;
       lastCoinPulseTime = 0;
     }
     lastCoinPulsesRecieved = coinPulsesRecieved;
@@ -207,9 +214,11 @@ void coinReturnCheck() {
       for (uint8_t j = 0; j < sizeof(coinSlotValue); j++) {
         if (sortedArray[i] > 0 && coinSlotValue[j] == sortedArray[i]) {
           while (counter >= coinSlotValue[j]) { // Keep releasing coins until the counter is lower than the value
-            if (analogRead(coinSlot[j]) < COIN_EMPTY && coinSlotLeft[j] == 0) // Check if coin slot is empty
+            if (analogRead(coinSlot[j]) < COIN_EMPTY && coinSlotLeft[j] == 0){ // Check if coin slot is empty
+              Serial.print("C");
+              Serial.println(j);
               break;
-            else {
+            } else {
               digitalWrite(coinSolenoid[j], HIGH); // Pulse solenoid
               delayNew(250); // Turn on solenoid
               digitalWrite(coinSolenoid[j], LOW);
@@ -305,6 +314,8 @@ void checkStopMotor() { // Stops motors after is has done a half revolution
     if (!motorSwitchPressed(input, i) && motorOutput & motorToOutputMask[i]) { // Switch is released and motor is running
       motorOutput &= ~motorToOutputMask[i];
       ledOutput &= ~errorLedMask;
+      totalUnitsDispensed++;
+      Serial.print("s");Serial.println(totalUnitsDispensed);
     }
   }
 
@@ -314,6 +325,7 @@ void checkStopMotor() { // Stops motors after is has done a half revolution
         counter += priceArray[i]; // Give back credit
         motorStuck(i);
         showErrorJam(); // Show error for 1s
+        Serial.print("J");Serial.println(i); // Tweet a jam
       }
     }
   }
@@ -346,8 +358,12 @@ void purchaseChecker() {
         purchaseTimer = millis(); // Set up timer, so it clears it after a set amount of time
         waitAfterButtonPress = true;
       }
-    } else
-      showErrorDry(); // Show error for 1s
+    } else {
+      if (motorIsStuck[buttonPressed] == true)
+        showErrorJam(); // Show error for 1s
+      else
+        showErrorDry(); // Show error for 1s
+    }
   }
   lastButtonPressed = buttonPressed;
 }
@@ -469,6 +485,10 @@ void motorStuck(uint8_t motor) {
   motorIsStuck[motor] = true;
 }
 
+bool checkDry(uint32_t input, uint8_t motor) {
+  return (input & motorToInputMask[motor]);
+}
+
 bool checkSlot(uint32_t input, uint8_t motor) {
   return !(input & motorToInputMask[motor]) && !motorIsStuck[motor];
 }
@@ -513,4 +533,67 @@ void delayNew(unsigned long ms) { // Just a copy of the normal delay(), but also
         updateMotorsLEDs(); // Update motor and LED output
     }
   }
+}
+
+void updateDry(){ // Check if any of the slots are empty, and updates the Dry information
+  uint32_t input = readSwitches();
+  for (uint8_t i = 0; i < sizeof(motorToOutputMask); i++) {
+    if (checkDry(input, i)){
+      if (!reportedDry[i]){
+        Serial.print("D");
+        Serial.print(i);
+        Serial.println();
+        reportedDry[i] = true;
+      }
+    }
+    else {
+      if (reportedDry[i]){
+        Serial.print("d");
+        Serial.print(i);
+        Serial.println();
+        reportedDry[i] = false;
+      }
+    }
+  }
+}
+
+void tweetBoot(){
+  // updateDry without printing
+  uint32_t input = readSwitches();
+  for (uint8_t i = 0; i < sizeof(motorToOutputMask); i++)
+    if (checkDry(input, i))
+      if (!reportedDry[i])
+        reportedDry[i] = true;
+
+  Serial.print("B,");
+  tweetStatus();
+}
+
+void tweetStatus(){
+  // Show units dispensed (sold)
+  Serial.print("S");
+  Serial.print(totalUnitsDispensed);
+
+  // Show jammed slots
+  Serial.print(",J");
+  for(uint8_t i = 0; i < sizeof(motorIsStuck); i++)
+    if(motorIsStuck[i])
+      Serial.print(i);
+
+  // Show dry slots
+  Serial.print(",D");
+  for(uint8_t i = 0; i < sizeof(reportedDry); i++)
+    if(reportedDry[i])
+      Serial.print(i);
+
+  // Show empty coin slots
+  Serial.print(",C");
+  if(coinSlotLeft[0] == 0)
+    Serial.print("0");
+  if(coinSlotLeft[2] == 0)
+    Serial.print("2");
+
+  Serial.println();
+
+  statusLastTweeted = millis();
 }
