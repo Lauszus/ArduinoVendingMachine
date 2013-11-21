@@ -7,44 +7,34 @@
 enum Letter {
   OFF = 0x00,
   SPACE = 0xFF,
-
-  C = 0xC6,
-  O = 0xC0,
-  L = 0xC7,
-  A = 0x88,
-
-  E = 0x86,
-  r = 0xAF,
   dash = 0xBF, // '-'
 
-  P = 0x8C,
-  S = 0x92,
-  I = 0xCF,
-
-  F = 0x8E,
-  n = 0xAB,
-  T1 = 0xF8,
-  T2 = 0xFE,
-
-  j = 0xF1,
-  J = 0xE0,
-  a = 0xA0,
-  Y = 0x91,
-
-  X = 0x89,
-
-  B = 0x80,
-  R = A,
-
-  V = 0xC1,
+  A = 0x88, a = 0xA0,
+  B = 0x80, b = 0x83,
+  C = 0xC6, c = 0xA7,
   d = 0xA1,
-  u = 0xE3,
-  o = 0xA3,
-
-  i = 0xEF,
+  E = 0x86,
+  F = 0x8E,
   g = 0x90,
-
-  K = X,
+  H = 0x89, h = 0x8B,
+  I = 0xCF, i = 0xEF,
+  J = 0xE0, j = 0xF1,
+  K = 0x89,
+  L = 0xC7,
+  m1= 0xAF, m2= 0x,AB,
+  n = 0xAB,  
+  O = 0xC0, o = 0xA3,
+  P = 0x8C,
+  Q = 0x40,
+  R = 0x88, r = 0xAF,
+  S = 0x92,
+  T1= 0xF8, T2= 0xFE,
+  u = 0xE3,
+  V = 0xC1,
+  // w
+  X = 0x89,
+  Y = 0x91,
+  // z
 };
 
 const uint8_t COLA[] = { C, O, L, A, OFF };
@@ -53,6 +43,7 @@ const uint8_t FANTA[] = { F, A, n, T1, T2 , A, OFF };
 const uint8_t FAXE[] = { F, A, X, E, OFF };
 const uint8_t BEER[] = { B, E, E, r, OFF };
 const uint8_t NO_REFUND[] = { n, o, SPACE, r, E, F, u, n, d, OFF };
+const uint8_t TRAPPED[] = { H, E, L, P, SPACE, I, SPACE, A, m1, m2, SPACE, T1, T2, r, A, P, P, E, d, SPACE, i, n, SPACE, A, SPACE, V, E, n, d, i, n, g, SPACE , m1, m2, A, c, h, i, n, E };
 
 // Function prototypes
 bool checkCoinSlots();
