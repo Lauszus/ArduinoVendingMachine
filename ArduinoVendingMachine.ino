@@ -115,8 +115,9 @@ void setup() {
 void loop() {
   if (Serial.available()) { // Only used for debugging
     int input = Serial.read();
-    if (input >= '0' && input <= '5')
-      spinMotor(input - '0');
+    if (input >= '0' && input <= '5'){
+      //spinMotor(input - '0');
+    }
     else if (input == 'C')
       scrollDisplay(COLA);
     else if (input == 'P')
@@ -129,6 +130,8 @@ void loop() {
       scrollDisplay(BEER);
     else if (input == 'N')
       scrollDisplay(NO_REFUND);
+    else if (input == 'T')
+      scrollDisplay(TRAPPED);
     else if (input == 'E')
       Serial.println(totalUnitsDispensed);
     else if (input == 'R') {
@@ -137,14 +140,16 @@ void loop() {
       totalUnitsDispensed = 0;
       EEPROM_updateAnything(0, totalUnitsDispensed);
     } else if (input == 'S') {
-      while (!Serial.available());
-      input = Serial.read();
+      tweetStatus();
+      /*while (!Serial.available());
+        input = Serial.read();
+      
       if (input >= '0' && input <= '2') {
-        digitalWrite(coinSolenoid[input - '0'], HIGH); // Pulse solenoid
+         digitalWrite(coinSolenoid[input - '0'], HIGH); // Pulse solenoid
         delayNew(250); // Turn on solenoid
-        digitalWrite(coinSolenoid[input - '0'], LOW);
+         digitalWrite(coinSolenoid[input - '0'], LOW);
         delayNew(250); // Make sure coin is released
-      }
+      }*/
     }
   }
 
@@ -157,8 +162,9 @@ void loop() {
   purchaseChecker(); // Check if a button has been pressed
   coinReturnCheck(); // Check if the coin return button is pressed
 
-  if (millis() - statusLastTweeted > 86400000)
-    tweetStatus(); // Tweet status once per day
+  // 
+  // if (millis() - statusLastTweeted > 86400000)
+  //   tweetStatus(); // Tweet status once per day
 
   if (displayScrolling)
     updateScroll();
@@ -570,23 +576,23 @@ void tweetBoot(){
 }
 
 void tweetStatus(){
-  // Show units dispensed (sold)
+  // Show beverages dispensed (sold)
   Serial.print("S");
   Serial.print(totalUnitsDispensed);
 
-  // Show jammed slots
+  // Print all jammed slots
   Serial.print(",J");
   for(uint8_t i = 0; i < sizeof(motorIsStuck); i++)
     if(motorIsStuck[i])
       Serial.print(i);
 
-  // Show dry slots
+  // Print all empty slots
   Serial.print(",D");
   for(uint8_t i = 0; i < sizeof(reportedDry); i++)
     if(reportedDry[i])
       Serial.print(i);
 
-  // Show empty coin slots
+  // Print all empty coin slots
   Serial.print(",C");
   if(coinSlotLeft[0] == 0)
     Serial.print("0");
