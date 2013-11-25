@@ -43,7 +43,7 @@ const uint8_t FANTA[] = { F, A, n, T1, T2 , A, OFF };
 const uint8_t FAXE[] = { F, A, X, E, OFF };
 const uint8_t BEER[] = { B, E, E, r, OFF };
 const uint8_t NO_REFUND[] = { n, o, SPACE, r, E, F, u, n, d, OFF };
-const uint8_t TRAPPED[] = { H, E, L, P, SPACE, I, SPACE, A, m1, m2, SPACE, T1, T2, r, A, P, P, E, d, SPACE, i, n, SPACE, A, SPACE, V, E, n, d, i, n, g, SPACE , m1, m2, A, c, h, i, n, E };
+const uint8_t TRAPPED[] = { H, E, L, P, SPACE, I, SPACE, A, m1, m2, SPACE, T1, T2, r, A, P, P, E, d, SPACE, i, n, SPACE, A, SPACE, V, E, n, d, i, n, g, SPACE , m1, m2, A, c, h, i, n, E, OFF };
 
 // Function prototypes
 bool checkCoinSlots();
