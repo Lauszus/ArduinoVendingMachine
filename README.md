@@ -1,5 +1,5 @@
 # Arduino Vending Machine
-#### Developed by Kristian Lauszus, TKJ Electronics 2013
+#### Developed by Kristian Lauszus and Sigurd Hansen
 
 The code is released under the GNU General Public License.
 _________
