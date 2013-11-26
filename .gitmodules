@@ -1,3 +1,6 @@
 [submodule "Arduino_Makefile_master"]
 	path = Arduino_Makefile_master
 	url = https://github.com/Lauszus/Arduino_Makefile_master.git
+[submodule "VendingMachinePython"]
+	path = VendingMachinePython
+	url = https://github.com/Jervelund/VendingMachinePython.git
