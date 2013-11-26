@@ -72,5 +72,8 @@ bool buyButtonPressed(uint32_t input, uint8_t button);
 void updateMotorsLEDs();
 uint32_t readSwitches();
 void delayNew(unsigned long ms);
+void updateDry();
+void tweetBoot();
+void tweetStatus();
 
 #endif
