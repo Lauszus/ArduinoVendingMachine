@@ -3,3 +3,6 @@ RFID læser - alle kan få et kort som der så er penge på
 	Kan styres vha. rpi
 Lav større delay, så coin validator kører inden den starter interrupt
 Kun kald "readSwitches" én gang i hvert loop
+Check om det fungerer med safetymargin med mønter i slots
+Pull up på coin return skal være extern
+Tjek at newDelay virker efter oldMotorOutput ændring
