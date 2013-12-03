@@ -111,8 +111,8 @@ void setup() {
   delay(300); // Make sure the voltage is stable
   tweetBoot();
   lastTrapped = 0;
-  timeToNextTrapped = 10000;
   randomSeed(analogRead(A4)); // Use analog input as random seed
+  timeToNextTrapped = random(10000000, 30000000);
   attachInterrupt(0, cointInterrupt, CHANGE);
 }
 
@@ -172,7 +172,7 @@ void loop() {
   if (millis() - lastTrapped > timeToNextTrapped) {
     scrollDisplay(TRAPPED); // Show stuck in vendingmachine
     lastTrapped = millis();
-    timeToNextTrapped = random(10000, 30000);
+    timeToNextTrapped = random(10000000, 30000000);
   }
 
   if (displayScrolling)
