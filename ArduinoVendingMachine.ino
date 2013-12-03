@@ -112,6 +112,7 @@ void setup() {
   tweetBoot();
   lastTrapped = 0;
   timeToNextTrapped = 10000;
+  randomSeed(analogRead(A4)); // Use analog input as random seed
   attachInterrupt(0, cointInterrupt, CHANGE);
 }
 
