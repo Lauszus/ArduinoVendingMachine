@@ -225,8 +225,8 @@ void coinReturnCheck() {
         if (sortedArray[i] > 0 && coinSlotValue[j] == sortedArray[i]) {
           while (counter >= coinSlotValue[j]) { // Keep releasing coins until the counter is lower than the value
             if (analogRead(coinSlot[j]) < COIN_EMPTY && coinSlotLeft[j] == 0){ // Check if coin slot is empty
-              Serial.print("C");
-              Serial.println(j);
+//              Serial.print("C");
+//              Serial.println(j);
               break;
             } else {
               digitalWrite(coinSolenoid[j], HIGH); // Pulse solenoid
@@ -326,7 +326,7 @@ void checkStopMotor() { // Stops motors after is has done a half revolution
       ledOutput &= ~errorLedMask;
       totalUnitsDispensed++;
       EEPROM_updateAnything(0, totalUnitsDispensed);
-      Serial.print("s");Serial.println(totalUnitsDispensed);
+//      Serial.print("s");Serial.println(totalUnitsDispensed);
     }
   }
 
@@ -336,7 +336,7 @@ void checkStopMotor() { // Stops motors after is has done a half revolution
         counter += priceArray[i]; // Give back credit
         motorStuck(i);
         showErrorJam(); // Show error for 1s
-        Serial.print("J");Serial.println(i); // Tweet a jam
+//        Serial.print("J");Serial.println(i); // Tweet a jam
       }
     }
   }
@@ -551,17 +551,17 @@ void updateDry(){ // Check if any of the slots are empty, and updates the Dry in
   for (uint8_t i = 0; i < sizeof(motorToOutputMask); i++) {
     if (checkDry(input, i)){
       if (!reportedDry[i]){
-        Serial.print("D");
-        Serial.print(i);
-        Serial.println();
+//        Serial.print("D");
+//        Serial.print(i);
+//        Serial.println();
         reportedDry[i] = true;
       }
     }
     else {
       if (reportedDry[i]){
-        Serial.print("d");
-        Serial.print(i);
-        Serial.println();
+//        Serial.print("d");
+//        Serial.print(i);
+//        Serial.println();
         reportedDry[i] = false;
       }
     }
@@ -576,8 +576,8 @@ void tweetBoot(){
       if (!reportedDry[i])
         reportedDry[i] = true;
 
-  Serial.print("B,");
-  tweetStatus();
+//  Serial.print("B,");
+//  tweetStatus();
 }
 
 void tweetStatus(){
