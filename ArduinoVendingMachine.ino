@@ -48,7 +48,8 @@ uint8_t motorOutput, ledOutput;
 uint32_t motorTimer;
 bool motorIsStuck[6];
 bool reportedDry[6];
-uint32_t statusLastTweeted;
+uint32_t timeToNextTrapped;
+uint32_t lastTrapped;
 
 const uint8_t coinSolenoid[] = { 10, 0, A3 }; // Connected to the solenoids
 const uint8_t coinSlot[] = { A6, 0, A7 }; // Analog input used to check if the coin slots are empty
@@ -109,6 +110,8 @@ void setup() {
   EEPROM_readAnything(0, totalUnitsDispensed); // Read value from EEPROM
   delay(300); // Make sure the voltage is stable
   tweetBoot();
+  lastTrapped = 0;
+  timeToNextTrapped = 10000;
   attachInterrupt(0, cointInterrupt, CHANGE);
 }
 
@@ -162,9 +165,11 @@ void loop() {
   purchaseChecker(); // Check if a button has been pressed
   coinReturnCheck(); // Check if the coin return button is pressed
 
-  // 
-  // if (millis() - statusLastTweeted > 86400000)
-  //   tweetStatus(); // Tweet status once per day
+   if (millis() - lastTrapped > timeToNextTrapped){
+     scrollDisplay(TRAPPED); // Show stuck in vendingmachine
+     lastTrapped = millis();
+     timeToNextTrapped = random(10000,30000);
+   }
 
   if (displayScrolling)
     updateScroll();
@@ -601,5 +606,5 @@ void tweetStatus(){
 
   Serial.println();
 
-  statusLastTweeted = millis();
+//  statusLastTweeted = millis();
 }
