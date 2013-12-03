@@ -7,8 +7,9 @@
 enum Letter {
   OFF = 0x00,
   SPACE = 0xFF,
-  dash = 0xBF, // '-'
-
+  mdash = dash = 0xBF, // '-'
+  ldash = 0xF7;
+  hdash = 0xFE;
   A = 0x88, a = 0xA0,
   B = 0x80, b = 0x83,
   C = 0xC6, c = 0xA7,
@@ -44,6 +45,7 @@ const uint8_t FAXE[] = { F, A, X, E, OFF };
 const uint8_t BEER[] = { B, E, E, r, OFF };
 const uint8_t NO_REFUND[] = { n, o, SPACE, r, E, F, u, n, d, OFF };
 const uint8_t TRAPPED[] = { H, E, L, P, SPACE, I, SPACE, A, m1, m2, SPACE, T1, T2, r, A, P, P, E, d, SPACE, i, n, SPACE, A, SPACE, V, E, n, d, i, n, g, SPACE , m1, m2, A, c, h, i, n, E, OFF };
+const uint8_t LADDER[] = { ldash, mdash, hdash, mdash, ldash, mdash, hdash, mdash, ldash, OFF };
 
 // Function prototypes
 bool checkCoinSlots();

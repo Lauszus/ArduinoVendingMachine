@@ -9,7 +9,7 @@
 // Change price of the items here:
 const uint8_t priceArray[] = { 5, 5, 5, 5, 5, 5 };
 // Change the name of the item here:
-const uint8_t *nameArray[] = { NULL, NULL, NULL, NULL, NULL, NULL }; // See in ArduinoVendingMachine.h for the possible names. If the one you need is not present then type NULL instead
+const uint8_t *nameArray[] = { LADDER, LADDER, LADDER, LADDER, LADDER, LADDER }; // See in ArduinoVendingMachine.h for the possible names. If the one you need is not present then type NULL instead
 // Change value of the coin slots:
 const uint8_t coinSlotValue[] = { 5, 0, 10 }; // Coin slots from right to left - note that the middle one is not connected at the moment
 uint8_t coinSlotLeft[] = { 6, 0, 5 }; // Coins there is in the slot when it thinks it is empty - with safety margin of 1
