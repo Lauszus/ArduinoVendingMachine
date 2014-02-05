@@ -7,7 +7,7 @@
 #include "ArduinoVendingMachine.h"
 
 // Change price of the items here:
-const uint8_t priceArray[] = { 5, 5, 5, 5, 5, 5 };
+const uint8_t priceArray[] = { 5, 5, 5, 10, 5, 5 };
 // Change the name of the item here:
 const uint8_t *nameArray[] = { LADDER, LADDER, LADDER, LADDER, LADDER, LADDER }; // See in ArduinoVendingMachine.h for the possible names. If the one you need is not present then type NULL instead
 // Change value of the coin slots:
