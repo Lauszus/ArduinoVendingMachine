@@ -14,7 +14,6 @@ const uint8_t *nameArray[] = { LADDER, LADDER, LADDER, LADDER, LADDER, LADDER };
 const uint8_t coinSlotValue[] = { 5, 0, 10 }; // Coin slots from right to left - note that the middle one is not connected at the moment
 uint8_t coinSlotLeft[] = { 6, 0, 5 }; // Coins there is in the slot when it thinks it is empty - with safety margin of 1
 
-
 // Do not change anything else below this line!
 const uint8_t coinPin = 2; // Interrupt pin connected to the coin validator pulse pin
 uint8_t lastButtonPressed;
@@ -44,7 +43,7 @@ const uint8_t motorToOutputMask[] = { 0x04, 0x08, 0x10, 0x20, 0x40, 0x80 };
 const uint8_t motorToInputMask[] = { 0x02, 0x04, 0x08, 0x10, 0x20, 0x40 };
 const uint8_t errorLedMask = 0x02; //, greenLedMask = 0x01; // The green LED does not work at the moment
 
-uint8_t motorOutput, ledOutput;
+uint8_t motorOutput = 0, ledOutput = 0;
 uint32_t motorTimer;
 bool motorIsStuck[6];
 bool reportedDry[6];
@@ -61,24 +60,25 @@ void setup() {
   Serial.begin(115200);
 
   // Pins for LED matrix
+  digitalWrite(clockPinLED, LOW);
+  digitalWrite(latchPinLED, HIGH);
+  digitalWrite(resetPinLED, HIGH);
+
   pinMode(clockPinLED, OUTPUT);
   pinMode(latchPinLED, OUTPUT);
   pinMode(resetPinLED, OUTPUT);
   pinMode(dataPinLED, OUTPUT);
 
-  digitalWrite(clockPinLED, LOW);
-  digitalWrite(latchPinLED, HIGH);
-  digitalWrite(resetPinLED, HIGH);
-
   // Pins used for shiftOut
+  digitalWrite(dataPinOut, LOW);
+  digitalWrite(clockPinOut, LOW);
+  digitalWrite(resetPinOut, HIGH); // Reset first
+  digitalWrite(latchPinOut, HIGH); // Then latch
+
   pinMode(clockPinOut, OUTPUT);
   pinMode(latchPinOut, OUTPUT);
   pinMode(resetPinOut, OUTPUT);
   pinMode(dataPinOut, OUTPUT);
-
-  digitalWrite(clockPinOut, LOW);
-  digitalWrite(latchPinOut, HIGH);
-  digitalWrite(resetPinOut, HIGH);
 
   // Pins for shiftIn
   pinMode(clockPinIn, OUTPUT);
@@ -113,7 +113,7 @@ void setup() {
   tweetBoot();
   lastTrapped = 0;
   randomSeed(analogRead(A4)); // Use analog input as random seed
-  timeToNextTrapped = random(10000000, 30000000);
+  timeToNextTrapped = random(1000000, 3000000);
   attachInterrupt(0, cointInterrupt, CHANGE);
 }
 
@@ -173,7 +173,7 @@ void loop() {
   if (millis() - lastTrapped > timeToNextTrapped) {
     scrollDisplay(TRAPPED); // Show stuck in vendingmachine
     lastTrapped = millis();
-    timeToNextTrapped = random(10000000, 30000000);
+    timeToNextTrapped = random(100000, 3000000);
   }
 
   if (displayScrolling)
@@ -189,12 +189,12 @@ void loop() {
 }
 
 bool checkCoinSlots() {
-  bool output = false;
+  bool output = true;
   for (uint8_t i = 0; i < sizeof(coinSlot); i++) {
-    if (coinSlotValue[i] > 0 && analogRead(coinSlot[i]) > COIN_EMPTY) // Check if coin slot is empty
-      output = true;
-    else
-      coinSlotLeft[i] = 0;
+    if (coinSlotValue[i] > 0 && analogRead(coinSlot[i]) < COIN_EMPTY){ // Check if coin slot is empty
+//      coinSlotLeft[i] = 0;
+      output = false;
+    }
   }
   return output;
 }
@@ -424,8 +424,14 @@ void showBoot() {
   output[4] = B;
   output[3] = O;
   output[2] = O;
-  output[1] = T1;
-  output[0] = T2;
+  randomSeed(analogRead(A4)); // Use analog input as random seed
+  if(random(1, 5) == 1){
+    output[1] = T1;
+    output[0] = T2;
+  } else {
+    output[1] = B;
+    output[0] = S;
+  }
   printDisplay(output);
 }
 
@@ -469,9 +475,26 @@ void printDisplay(uint8_t *output) {
   digitalWrite(latchPinLED, HIGH);
 }
 
+bool checkMotors(){
+  uint8_t motorsDone = 0;
+  uint32_t input = readSwitches();
+  for (uint8_t i = 0; i < sizeof(motorToOutputMask); i++) {
+    if (!motorSwitchPressed(input, i)) // If switch is released stop motor
+      motorsDone++;
+  }
+  if(motorsDone == sizeof(motorToOutputMask))
+    return true;
+  return false;
+}
+
 void resetMotors() { // Set all motors to the default position
+  if(checkMotors()){ // If all motors are in correct position, write motorOutput to zero and return
+    updateMotorsLEDs();
+    return;
+  }
+
   for (uint8_t i = 0; i < sizeof(motorToOutputMask); i++)
-    motorOutput |= motorToOutputMask[i]; // Set all motors on
+    motorOutput |= motorToOutputMask[i]; // Set all motors on in the buffer
 
   uint32_t timer = millis();
   while (motorOutput != 0x00) {
@@ -480,14 +503,14 @@ void resetMotors() { // Set all motors to the default position
       if (!motorSwitchPressed(input, i)) // If switch is released stop motor
         motorOutput &= ~motorToOutputMask[i];
     }
-    if (millis() - timer > 10000) { // Is must be stuck
+    if (millis() - timer > 10000) { // Motors running now must be stuck
       for (uint8_t i = 0; i < sizeof(motorToOutputMask); i++) {
         if (motorOutput & motorToOutputMask[i]) // Motor is running
           motorStuck(i);
       }
     }
     updateMotorsLEDs();
-    delay(10);
+    delay(2);
   }
 }
 
