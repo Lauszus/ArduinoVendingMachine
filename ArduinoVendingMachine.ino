@@ -192,7 +192,6 @@ bool checkCoinSlots() {
   bool output = true;
   for (uint8_t i = 0; i < sizeof(coinSlot); i++) {
     if (coinSlotValue[i] > 0 && analogRead(coinSlot[i]) < COIN_EMPTY){ // Check if coin slot is empty
-//      coinSlotLeft[i] = 0;
       output = false;
     }
   }
