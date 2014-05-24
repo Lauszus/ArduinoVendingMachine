@@ -6,11 +6,11 @@
 
 enum Letter {
   OFF = 0x00,
-  SPACE = 0xFF,
+  SPACE = 0xFF, space = SPACE,
   dash = 0xBF, // '-'
-  mdash = dash,
-  ldash = 0xF7,
-  hdash = 0xFE,
+  mdash = dash, // middle dash
+  ldash = 0xF7, // high dash
+  hdash = 0xFE, // low dash
   A = 0x88, a = 0xA0,
   B = 0x80, b = 0x83,
   C = 0xC6, c = 0xA7,
@@ -38,6 +38,10 @@ enum Letter {
   Y = 0x91,
   // z
 };
+
+const uint8_t ERR_EEPROM_BAD[] = {E, r, r, SPACE, E, E, P, R, O, m1, m1, SPACE; b, A, d, OFF};
+const uint8_t ERR_OUT_OF_MEM[] = {E, r, r, SPACE, n, o, SPACE, F, r, E, E, SPACE, m1, m2, E, m1, m2, OFF};
+const uint8_t ERR_NO_CREDIT[] = {n, o, SPACE, C, r, E, d, i, T1, T2, OFF};
 
 const uint8_t COLA[] = { C, O, L, A, OFF };
 const uint8_t PEPSI[] = { P, E, P, S, I, OFF };

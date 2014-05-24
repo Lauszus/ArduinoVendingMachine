@@ -110,7 +110,7 @@ void setup() {
   counter = lastCounter = coinPulsesRecieved = lastCoinPulsesRecieved = 0;
   EEPROM_readAnything(0, totalUnitsDispensed); // Read value from EEPROM
   delay(300); // Make sure the voltage is stable
-  tweetBoot();
+  //updateDryNoOutput();
   lastTrapped = 0;
   randomSeed(analogRead(A4)); // Use analog input as random seed
   timeToNextTrapped = random(1000000, 3000000);
@@ -118,12 +118,26 @@ void setup() {
 }
 
 void loop() {
-  if (Serial.available()) { // Only used for debugging
+  if (Serial.available()) {
     int input = Serial.read();
-    if (input >= '0' && input <= '5') {
+    // Only used for debugging
+    //if (input >= '0' && input <= '5') {
       //spinMotor(input - '0');
-    }
-    else if (input == 'C')
+    //}
+    //RFID functionality
+    if(input == 'C') // Fetch current credits
+      Serial.println(counter);
+    else if(input == 'S') // Set current credits
+      counter = Serial.parseInt();
+    else if(input == 'Z') // Zero current credits
+      counter = 0;
+    else if (input == 'B')
+      scrollDisplay(ERR_EEPROM_BAD);
+    else if (input == 'O')
+      scrollDisplay(ERR_OUT_OF_MEM);
+    else if (input == 'N')
+      scrollDisplay(ERR_NO_CREDIT);
+    /*else if (input == 'C')
       scrollDisplay(COLA);
     else if (input == 'P')
       scrollDisplay(PEPSI);
@@ -136,7 +150,7 @@ void loop() {
     else if (input == 'N')
       scrollDisplay(NO_REFUND);
     else if (input == 'T')
-      scrollDisplay(TRAPPED);
+      scrollDisplay(TRAPPED);*/
     else if (input == 'E')
       Serial.println(totalUnitsDispensed);
     else if (input == 'R') {
@@ -144,21 +158,9 @@ void loop() {
       Serial.println(totalUnitsDispensed);
       totalUnitsDispensed = 0;
       EEPROM_updateAnything(0, totalUnitsDispensed);
-    } else if (input == 'S') {
+    }/* else if (input == 'S') {
       tweetStatus();
-
-#if 0
-      while (!Serial.available());
-      input = Serial.read();
-
-      if (input >= '0' && input <= '2') {
-        digitalWrite(coinSolenoid[input - '0'], HIGH); // Pulse solenoid
-        delayNew(250); // Turn on solenoid
-        digitalWrite(coinSolenoid[input - '0'], LOW);
-        delayNew(250); // Make sure coin is released
-      }
-#endif
-    }
+    }*/
   }
 
   checkStopMotor(); // Check if a motor has turned a half revolution
@@ -582,7 +584,7 @@ void updateDry() { // Check if any of the slots are empty, and updates the Dry i
   }
 }
 
-void tweetBoot() {
+void updateDryNoOutput() {
   // updateDry without printing
   uint32_t input = readSwitches();
   for (uint8_t i = 0; i < sizeof(motorToOutputMask); i++)
