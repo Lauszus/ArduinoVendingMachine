@@ -39,9 +39,9 @@ enum Letter {
   // z
 };
 
-const uint8_t ERR_EEPROM_BAD[] = {E, r, r, SPACE, E, E, P, R, O, m1, m1, SPACE; b, A, d, OFF};
+const uint8_t ERR_EEPROM_BAD[] = {E, r, r, SPACE, E, E, P, R, O, m1, m1, SPACE, b, A, d, OFF};
 const uint8_t ERR_OUT_OF_MEM[] = {E, r, r, SPACE, n, o, SPACE, F, r, E, E, SPACE, m1, m2, E, m1, m2, OFF};
-const uint8_t ERR_NO_CREDIT[] = {n, o, SPACE, C, r, E, d, i, T1, T2, OFF};
+const uint8_t ERR_NO_CREDIT[] = {n, o, SPACE, C, r, E, d, I, T1, T2, OFF};
 
 const uint8_t COLA[] = { C, O, L, A, OFF };
 const uint8_t PEPSI[] = { P, E, P, S, I, OFF };

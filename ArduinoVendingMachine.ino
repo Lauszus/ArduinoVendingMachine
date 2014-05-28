@@ -57,7 +57,7 @@ const uint8_t COIN_EMPTY = 500; // If the ADC value gets below this value, then 
 uint32_t refundTimer;
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(9600);
 
   // Pins for LED matrix
   digitalWrite(clockPinLED, LOW);
@@ -125,12 +125,27 @@ void loop() {
       //spinMotor(input - '0');
     //}
     //RFID functionality
-    if(input == 'C') // Fetch current credits
-      Serial.println(counter);
-    else if(input == 'S') // Set current credits
-      counter = Serial.parseInt();
-    else if(input == 'Z') // Zero current credits
+    if(input == 'C'){ // Fetch current credits
+      uint16_t number = counter;            // 0001 0110 0100 0111
+      uint16_t mask   = B11111111;          // 0000 0000 1111 1111
+      uint8_t first_half   = number >> 8;   // >>>> >>>> 0001 0110
+      uint8_t sencond_half = number & mask; // ____ ____ 0100 0111
+      Serial.write(sencond_half);
+      Serial.write(first_half);
+    }
+    else if(input == 'S'){ // Set current credits
+      char parseBuffer[2];
+      if(Serial.readBytes(parseBuffer, sizeof(parseBuffer)) == 2){
+        // new value recieved correctly
+        memcpy(&counter,parseBuffer,sizeof(parseBuffer));
+      }
+      //Serial.println(counter);
+      showValue(counter);
+    }
+    else if(input == 'Z'){ // Zero current credits
       counter = 0;
+      showValue(counter);
+    }
     else if (input == 'B')
       scrollDisplay(ERR_EEPROM_BAD);
     else if (input == 'O')
