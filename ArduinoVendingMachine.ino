@@ -7,16 +7,12 @@
 #include "ArduinoVendingMachine.h"
 
 // Change price of the items here:
-const uint8_t priceArray[] = { 
-  5, 5, 5, 5, 5, 5 };
+const uint8_t priceArray[] = { 5, 5, 5, 5, 5, 5 };
 // Change the name of the item here:
-const uint8_t *nameArray[] = { 
-  LADDER, LADDER, LADDER, LADDER, LADDER, LADDER }; // See in ArduinoVendingMachine.h for the possible names. If the one you need is not present then type NULL instead
+const uint8_t *nameArray[] = { LADDER, LADDER, LADDER, LADDER, LADDER, LADDER }; // See in ArduinoVendingMachine.h for the possible names. If the one you need is not present then type NULL instead
 // Change value of the coin slots:
-const uint8_t coinSlotValue[] = { 
-  5, 0, 10 }; // Coin slots from right to left - note that the middle one is not connected at the moment
-uint8_t coinSlotLeft[] = { 
-  6, 0, 5 }; // Coins there is in the slot when it thinks it is empty - with safety margin of 1
+const uint8_t coinSlotValue[] = { 5, 0, 10 }; // Coin slots from right to left - note that the middle one is not connected at the moment
+uint8_t coinSlotLeft[] = { 6, 0, 5 }; // Coins there is in the slot when it thinks it is empty - with safety margin of 1
 
 // Do not change anything else below this line!
 const uint8_t coinPin = 2; // Interrupt pin connected to the coin validator pulse pin
@@ -25,8 +21,7 @@ uint32_t purchaseTimer;
 bool waitAfterButtonPress;
 
 const uint8_t clockPinLED = A1, dataPinLED = A2, latchPinLED = A0, resetPinLED = 13;
-const uint8_t numbers[] = { 
-  0xC0, 0xF9, 0xA4, 0xB0, 0x99, 0x92, 0x82, 0xF8, 0x80, 0x90 }; // Numbers for LED matrix
+const uint8_t numbers[] = { 0xC0, 0xF9, 0xA4, 0xB0, 0x99, 0x92, 0x82, 0xF8, 0x80, 0x90 }; // Numbers for LED matrix
 
 uint8_t displayBuffer[5];
 uint8_t *pOutputString;
@@ -44,10 +39,8 @@ uint32_t lastCoinPulseTime;
 const uint8_t clockPinOut = 3, dataPinOut = 5, latchPinOut = 4, resetPinOut = 6; // Pins for driving the motors
 const uint8_t clockPinIn = 11, dataPinIn = 9, latchPinIn = 7; // Pins used to check the switches
 
-const uint8_t motorToOutputMask[] = { 
-  0x04, 0x08, 0x10, 0x20, 0x40, 0x80 };
-const uint8_t motorToInputMask[] = { 
-  0x02, 0x04, 0x08, 0x10, 0x20, 0x40 };
+const uint8_t motorToOutputMask[] = { 0x04, 0x08, 0x10, 0x20, 0x40, 0x80 };
+const uint8_t motorToInputMask[] = { 0x02, 0x04, 0x08, 0x10, 0x20, 0x40 };
 const uint8_t errorLedMask = 0x02; //, greenLedMask = 0x01; // The green LED does not work at the moment
 
 uint8_t motorOutput = 0, ledOutput = 0;
@@ -57,10 +50,8 @@ bool reportedDry[6];
 uint32_t timeToNextTrapped;
 uint32_t lastTrapped;
 
-const uint8_t coinSolenoid[] = { 
-  10, 0, A3 }; // Connected to the solenoids
-const uint8_t coinSlot[] = { 
-  A6, 0, A7 }; // Analog input used to check if the coin slots are empty
+const uint8_t coinSolenoid[] = { 10, 0, A3 }; // Connected to the solenoids
+const uint8_t coinSlot[] = { A6, 0, A7 }; // Analog input used to check if the coin slots are empty
 const uint8_t coinReturn = A5; // Return button
 const uint8_t COIN_EMPTY = 500; // If the ADC value gets below this value, then the coin slot is empty
 uint32_t refundTimer;
@@ -128,10 +119,12 @@ void setup() {
   attachInterrupt(0, cointInterrupt, CHANGE);
 }
 
+#define transmission_attempts 10
+#define transmission_repeats 5
 uint8_t recieve_error;
 uint16_t rfid_recieve(){
-  char parseBuffer[10];
-  uint8_t recieveAttemptsRemaining = 11;
+  char parseBuffer[transmission_repeats*2];
+  uint8_t recieveAttemptsRemaining = transmission_attempts;
   uint16_t number = 0;
   while(recieveAttemptsRemaining-- > 0){
     if(Serial.readBytes(parseBuffer, sizeof(parseBuffer)) == sizeof(parseBuffer)){
@@ -150,7 +143,6 @@ uint16_t rfid_recieve(){
       Serial.write(recieveAttemptsRemaining+48);
   }
   recieve_error = 1; // timed out
-//number = 0;
   // Let other party know we do not need a retransmission
   Serial.write(0);
   return number;
@@ -162,15 +154,16 @@ char rfid_transmit(uint16_t number){
   uint8_t first_half   = number >> 8;   // >>>> >>>> 0001 0110
   uint8_t sencond_half = number & mask; // ____ ____ 0100 0111
   char waiting_for_ok = 1;
-  uint8_t transmitAttemptsRemaining = 10;
+  uint8_t transmitAttemptsRemaining = transmission_attempts;
   while(waiting_for_ok && transmitAttemptsRemaining-- > 0){
     // Flush incoming buffer
     while(Serial.available()){Serial.read();}
-    for (int i = 0; i < 10; i = i+2) {
+    for (int i = 0; i < transmission_repeats*2; i = i+2) {
       Serial.write(sencond_half);
       Serial.write(first_half);
     }
-    Serial.readBytes(&waiting_for_ok,1);
+    if(Serial.readBytes(&waiting_for_ok,1) == 0) // No bytes recieved
+      waiting_for_ok = 1; // Overwrite waiting_for_ok - necessary?
   }
   return waiting_for_ok;
 }
