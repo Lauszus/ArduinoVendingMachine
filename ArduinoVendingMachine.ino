@@ -7,12 +7,16 @@
 #include "ArduinoVendingMachine.h"
 
 // Change price of the items here:
-const uint8_t priceArray[] = { 5, 5, 5, 5, 5, 5 };
+const uint8_t priceArray[] = { 
+  5, 5, 5, 5, 5, 5 };
 // Change the name of the item here:
-const uint8_t *nameArray[] = { LADDER, LADDER, LADDER, LADDER, LADDER, LADDER }; // See in ArduinoVendingMachine.h for the possible names. If the one you need is not present then type NULL instead
+const uint8_t *nameArray[] = { 
+  LADDER, LADDER, LADDER, LADDER, LADDER, LADDER }; // See in ArduinoVendingMachine.h for the possible names. If the one you need is not present then type NULL instead
 // Change value of the coin slots:
-const uint8_t coinSlotValue[] = { 5, 0, 10 }; // Coin slots from right to left - note that the middle one is not connected at the moment
-uint8_t coinSlotLeft[] = { 6, 0, 5 }; // Coins there is in the slot when it thinks it is empty - with safety margin of 1
+const uint8_t coinSlotValue[] = { 
+  5, 0, 10 }; // Coin slots from right to left - note that the middle one is not connected at the moment
+uint8_t coinSlotLeft[] = { 
+  6, 0, 5 }; // Coins there is in the slot when it thinks it is empty - with safety margin of 1
 
 // Do not change anything else below this line!
 const uint8_t coinPin = 2; // Interrupt pin connected to the coin validator pulse pin
@@ -21,7 +25,8 @@ uint32_t purchaseTimer;
 bool waitAfterButtonPress;
 
 const uint8_t clockPinLED = A1, dataPinLED = A2, latchPinLED = A0, resetPinLED = 13;
-const uint8_t numbers[] = { 0xC0, 0xF9, 0xA4, 0xB0, 0x99, 0x92, 0x82, 0xF8, 0x80, 0x90 }; // Numbers for LED matrix
+const uint8_t numbers[] = { 
+  0xC0, 0xF9, 0xA4, 0xB0, 0x99, 0x92, 0x82, 0xF8, 0x80, 0x90 }; // Numbers for LED matrix
 
 uint8_t displayBuffer[5];
 uint8_t *pOutputString;
@@ -39,8 +44,10 @@ uint32_t lastCoinPulseTime;
 const uint8_t clockPinOut = 3, dataPinOut = 5, latchPinOut = 4, resetPinOut = 6; // Pins for driving the motors
 const uint8_t clockPinIn = 11, dataPinIn = 9, latchPinIn = 7; // Pins used to check the switches
 
-const uint8_t motorToOutputMask[] = { 0x04, 0x08, 0x10, 0x20, 0x40, 0x80 };
-const uint8_t motorToInputMask[] = { 0x02, 0x04, 0x08, 0x10, 0x20, 0x40 };
+const uint8_t motorToOutputMask[] = { 
+  0x04, 0x08, 0x10, 0x20, 0x40, 0x80 };
+const uint8_t motorToInputMask[] = { 
+  0x02, 0x04, 0x08, 0x10, 0x20, 0x40 };
 const uint8_t errorLedMask = 0x02; //, greenLedMask = 0x01; // The green LED does not work at the moment
 
 uint8_t motorOutput = 0, ledOutput = 0;
@@ -50,14 +57,17 @@ bool reportedDry[6];
 uint32_t timeToNextTrapped;
 uint32_t lastTrapped;
 
-const uint8_t coinSolenoid[] = { 10, 0, A3 }; // Connected to the solenoids
-const uint8_t coinSlot[] = { A6, 0, A7 }; // Analog input used to check if the coin slots are empty
+const uint8_t coinSolenoid[] = { 
+  10, 0, A3 }; // Connected to the solenoids
+const uint8_t coinSlot[] = { 
+  A6, 0, A7 }; // Analog input used to check if the coin slots are empty
 const uint8_t coinReturn = A5; // Return button
 const uint8_t COIN_EMPTY = 500; // If the ADC value gets below this value, then the coin slot is empty
 uint32_t refundTimer;
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(19200); // Initialize serial communications with master vending arduino
+  Serial.setTimeout(400);
 
   // Pins for LED matrix
   digitalWrite(clockPinLED, LOW);
@@ -103,7 +113,8 @@ void setup() {
   if (!checkCoinSlots()) {
     scrollDisplay(NO_REFUND); // If there is no coins left show "No refund"
     refundTimer = millis();
-  } else
+  } 
+  else
     showValue(counter); // Update display to show counter value
 
   pinMode(coinPin, INPUT); // Setup coin input
@@ -117,29 +128,68 @@ void setup() {
   attachInterrupt(0, cointInterrupt, CHANGE);
 }
 
+uint8_t recieve_error;
+uint16_t rfid_recieve(){
+  char parseBuffer[10];
+  uint8_t recieveAttemptsRemaining = 11;
+  uint16_t number = 0;
+  while(recieveAttemptsRemaining-- > 0){
+    if(Serial.readBytes(parseBuffer, sizeof(parseBuffer)) == sizeof(parseBuffer)){
+      // Recieved correct ammount of bytes - check message integrity
+      if(memcmp(parseBuffer,parseBuffer+2,sizeof(parseBuffer)-2) == 0){
+        // OK
+        recieve_error = 0;
+        // Let other party know we do not need a retransmission
+        Serial.write(0);
+        memcpy(&number,parseBuffer,sizeof(number));
+        return number;
+      }
+    }
+    // Recieved incorrect ammount of bytes - Retry only if we are going to run function again
+    if(recieveAttemptsRemaining > 0)
+      Serial.write(recieveAttemptsRemaining+48);
+  }
+  recieve_error = 1; // timed out
+//number = 0;
+  // Let other party know we do not need a retransmission
+  Serial.write(0);
+  return number;
+}
+
+char rfid_transmit(uint16_t number){
+//uint16_t number;                      // 0001 0110 0100 0111
+  uint16_t mask   = B11111111;          // 0000 0000 1111 1111
+  uint8_t first_half   = number >> 8;   // >>>> >>>> 0001 0110
+  uint8_t sencond_half = number & mask; // ____ ____ 0100 0111
+  char waiting_for_ok = 1;
+  uint8_t transmitAttemptsRemaining = 10;
+  while(waiting_for_ok && transmitAttemptsRemaining-- > 0){
+    // Flush incoming buffer
+    while(Serial.available()){Serial.read();}
+    for (int i = 0; i < 10; i = i+2) {
+      Serial.write(sencond_half);
+      Serial.write(first_half);
+    }
+    Serial.readBytes(&waiting_for_ok,1);
+  }
+  return waiting_for_ok;
+}
+
 void loop() {
   if (Serial.available()) {
     int input = Serial.read();
     // Only used for debugging
     //if (input >= '0' && input <= '5') {
-      //spinMotor(input - '0');
+    //spinMotor(input - '0');
     //}
     //RFID functionality
     if(input == 'C'){ // Fetch current credits
-      uint16_t number = counter;            // 0001 0110 0100 0111
-      uint16_t mask   = B11111111;          // 0000 0000 1111 1111
-      uint8_t first_half   = number >> 8;   // >>>> >>>> 0001 0110
-      uint8_t sencond_half = number & mask; // ____ ____ 0100 0111
-      Serial.write(sencond_half);
-      Serial.write(first_half);
+      rfid_transmit(counter);
     }
     else if(input == 'S'){ // Set current credits
-      char parseBuffer[2];
-      if(Serial.readBytes(parseBuffer, sizeof(parseBuffer)) == 2){
-        // new value recieved correctly
-        memcpy(&counter,parseBuffer,sizeof(parseBuffer));
-      }
-      //Serial.println(counter);
+      uint16_t temp_counter = rfid_recieve();
+      if(recieve_error == 0) // If credits recieved correctly, update counter
+        counter = temp_counter;
       showValue(counter);
     }
     else if(input == 'Z'){ // Zero current credits
@@ -152,20 +202,20 @@ void loop() {
       scrollDisplay(ERR_OUT_OF_MEM);
     else if (input == 'N')
       scrollDisplay(ERR_NO_CREDIT);
-    /*else if (input == 'C')
-      scrollDisplay(COLA);
-    else if (input == 'P')
-      scrollDisplay(PEPSI);
-    else if (input == 'F')
-      scrollDisplay(FANTA);
-    else if (input == 'X')
-      scrollDisplay(FAXE);
-    else if (input == 'B')
-      scrollDisplay(BEER);
-    else if (input == 'N')
-      scrollDisplay(NO_REFUND);
-    else if (input == 'T')
-      scrollDisplay(TRAPPED);*/
+    else if (input == 'C')
+     scrollDisplay(COLA);
+    /*else if (input == 'P')
+     scrollDisplay(PEPSI);
+     else if (input == 'F')
+     scrollDisplay(FANTA);
+     else if (input == 'X')
+     scrollDisplay(FAXE);
+     else if (input == 'B')
+     scrollDisplay(BEER);
+     else if (input == 'N')
+     scrollDisplay(NO_REFUND);
+     else if (input == 'T')
+     scrollDisplay(TRAPPED);*/
     else if (input == 'E')
       Serial.println(totalUnitsDispensed);
     else if (input == 'R') {
@@ -174,8 +224,8 @@ void loop() {
       totalUnitsDispensed = 0;
       EEPROM_updateAnything(0, totalUnitsDispensed);
     }/* else if (input == 'S') {
-      tweetStatus();
-    }*/
+     tweetStatus();
+     }*/
   }
 
   checkStopMotor(); // Check if a motor has turned a half revolution
@@ -198,7 +248,8 @@ void loop() {
   else if (!checkCoinSlots() && (millis() - refundTimer > 12000)) { // Scroll "No refund" every 12s
     scrollDisplay(NO_REFUND); // If there is no coins left show "No refund"
     refundTimer = millis();
-  } else if ((!waitAfterButtonPress && counter != lastCounter) || (waitAfterButtonPress && (millis() - purchaseTimer > 1000))) { // Only update the LED matrix if a coin has been inserted or 1s after purchaseChecker() has printed something to the LED matrix
+  } 
+  else if ((!waitAfterButtonPress && counter != lastCounter) || (waitAfterButtonPress && (millis() - purchaseTimer > 1000))) { // Only update the LED matrix if a coin has been inserted or 1s after purchaseChecker() has printed something to the LED matrix
     showValue(counter);
     lastCounter = counter;
     waitAfterButtonPress = false;
@@ -226,7 +277,8 @@ void coinChecker() {
       lastCoinPulseTime = 0;
     }
     lastCoinPulsesRecieved = coinPulsesRecieved;
-  } else if (coinPulsesRecieved == 1) { // If pulses is 1, and has not changed for 150ms, reset pulse count
+  } 
+  else if (coinPulsesRecieved == 1) { // If pulses is 1, and has not changed for 150ms, reset pulse count
     if (lastCoinPulseTime == 0) // If timer is not set, the pulse was just recieved
       lastCoinPulseTime = millis();
     else if (millis() - lastCoinPulseTime > 150) // Faux pulse - reset everything
@@ -304,9 +356,11 @@ void updateScroll() { // This should be called regularly after scrollDisplay() i
     if (displayBuffer[0] == OFF) { // End char found
       displayBuffer[0] = SPACE; // Set LEDs off
       trailingSpaces++;
-    } else
+    } 
+    else
       scrollPosition++;
-  } else
+  } 
+  else
     trailingSpaces++; // End char is found, so just add trailing spaces until text is fully scrolled out
 
   if (trailingSpaces == sizeof(displayBuffer))
@@ -380,12 +434,14 @@ void purchaseChecker() {
           spinMotor(buttonPressed);
           scrollDisplay(nameArray[buttonPressed]);
         }
-      } else { // Not enough money to buy item
+      } 
+      else { // Not enough money to buy item
         showValue(price); // Show the price of the item
         purchaseTimer = millis(); // Set up timer, so it clears it after a set amount of time
         waitAfterButtonPress = true;
       }
-    } else {
+    } 
+    else {
       if (motorIsStuck[buttonPressed] == true)
         showErrorJam(); // Show error for 1s
       else
@@ -444,7 +500,8 @@ void showBoot() {
   if(random(1, 5) == 1){
     output[1] = T1;
     output[0] = T2;
-  } else {
+  } 
+  else {
     output[1] = B;
     output[0] = S;
   }
@@ -634,3 +691,4 @@ void tweetStatus() {
 
   Serial.println();
 }
+
