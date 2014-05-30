@@ -119,53 +119,37 @@ void setup() {
   attachInterrupt(0, cointInterrupt, CHANGE);
 }
 
-#define transmission_attempts 10
-#define transmission_repeats 5
+#define TRANSMISSION_REPEATS 5
+#define TRANSMISSION_SPACE 95
+#define TRANSMISSION_ATOM_SIZE 3
 uint8_t recieve_error;
-uint16_t rfid_recieve(){
-  char parseBuffer[transmission_repeats*2];
-  uint8_t recieveAttemptsRemaining = transmission_attempts;
+uint16_t rfid_raw_read(){
+  unsigned char parseBuffer[TRANSMISSION_REPEATS*TRANSMISSION_ATOM_SIZE];
   uint16_t number = 0;
-  while(recieveAttemptsRemaining-- > 0){
-    if(Serial.readBytes(parseBuffer, sizeof(parseBuffer)) == sizeof(parseBuffer)){
-      // Recieved correct ammount of bytes - check message integrity
-      if(memcmp(parseBuffer,parseBuffer+2,sizeof(parseBuffer)-2) == 0){
+  recieve_error = 1; // set default to error
+  if(Serial.readBytes(parseBuffer, sizeof(parseBuffer)) == sizeof(parseBuffer)){
+    // Recieved correct ammount of bytes - check message integrity
+    if(memcmp(parseBuffer,parseBuffer+TRANSMISSION_ATOM_SIZE,sizeof(parseBuffer)-TRANSMISSION_ATOM_SIZE) == 0){
+      if(parseBuffer[2] == TRANSMISSION_SPACE){
         // OK
         recieve_error = 0;
         // Let other party know we do not need a retransmission
-        Serial.write(0);
         memcpy(&number,parseBuffer,sizeof(number));
-        return number;
       }
     }
-    // Recieved incorrect ammount of bytes - Retry only if we are going to run function again
-    if(recieveAttemptsRemaining > 0)
-      Serial.write(recieveAttemptsRemaining+48);
   }
-  recieve_error = 1; // timed out
-  // Let other party know we do not need a retransmission
-  Serial.write(0);
   return number;
 }
 
-char rfid_transmit(uint16_t number){
-//uint16_t number;                      // 0001 0110 0100 0111
+char rfid_raw_transmit(uint16_t number){
   uint16_t mask   = B11111111;          // 0000 0000 1111 1111
   uint8_t first_half   = number >> 8;   // >>>> >>>> 0001 0110
   uint8_t sencond_half = number & mask; // ____ ____ 0100 0111
-  char waiting_for_ok = 1;
-  uint8_t transmitAttemptsRemaining = transmission_attempts;
-  while(waiting_for_ok && transmitAttemptsRemaining-- > 0){
-    // Flush incoming buffer
-    while(Serial.available()){Serial.read();}
-    for (int i = 0; i < transmission_repeats*2; i = i+2) {
-      Serial.write(sencond_half);
-      Serial.write(first_half);
-    }
-    if(Serial.readBytes(&waiting_for_ok,1) == 0) // No bytes recieved
-      waiting_for_ok = 1; // Overwrite waiting_for_ok - necessary?
+  for (int i = 0; i < TRANSMISSION_REPEATS*TRANSMISSION_ATOM_SIZE; i = i+TRANSMISSION_ATOM_SIZE) {
+    Serial.write(sencond_half);
+    Serial.write(first_half);
+    Serial.write(TRANSMISSION_SPACE);
   }
-  return waiting_for_ok;
 }
 
 void loop() {
@@ -177,12 +161,14 @@ void loop() {
     //}
     //RFID functionality
     if(input == 'C'){ // Fetch current credits
-      rfid_transmit(counter);
+      rfid_raw_transmit(counter);
     }
     else if(input == 'S'){ // Set current credits
-      uint16_t temp_counter = rfid_recieve();
-      if(recieve_error == 0) // If credits recieved correctly, update counter
+      uint16_t temp_counter = rfid_raw_read();
+      if(recieve_error == 0){ // If credits recieved correctly, update counter
         counter = temp_counter;
+        Serial.write(0);
+      } else {Serial.write(255);} // Did not recieve correctly - notify other party
       showValue(counter);
     }
     else if(input == 'Z'){ // Zero current credits
