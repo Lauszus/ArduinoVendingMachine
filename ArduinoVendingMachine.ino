@@ -46,7 +46,7 @@ const uint8_t errorLedMask = 0x02; //, greenLedMask = 0x01; // The green LED doe
 uint8_t motorOutput = 0, ledOutput = 0;
 uint32_t motorTimer;
 bool motorIsStuck[6];
-bool reportedDry[6];
+//bool reportedDry[6];
 uint32_t timeToNextTrapped;
 uint32_t lastTrapped;
 
@@ -123,6 +123,7 @@ void setup() {
 #define TRANSMISSION_SPACE 95
 #define TRANSMISSION_ATOM_SIZE 3
 uint8_t recieve_error;
+
 uint16_t rfid_raw_read(){
   char parseBuffer[TRANSMISSION_REPEATS*TRANSMISSION_ATOM_SIZE];
   uint16_t number = 0;
@@ -142,12 +143,9 @@ uint16_t rfid_raw_read(){
 }
 
 char rfid_raw_transmit(uint16_t number){
-  uint16_t mask   = B11111111;          // 0000 0000 1111 1111
-  uint8_t first_half   = number >> 8;   // >>>> >>>> 0001 0110
-  uint8_t sencond_half = number & mask; // ____ ____ 0100 0111
   for (int i = 0; i < TRANSMISSION_REPEATS*TRANSMISSION_ATOM_SIZE; i = i+TRANSMISSION_ATOM_SIZE) {
-    Serial.write(sencond_half);
-    Serial.write(first_half);
+    Serial.write(number & 0xFF);
+    Serial.write(number >> 8);
     Serial.write(TRANSMISSION_SPACE);
   }
 }
@@ -181,9 +179,9 @@ void loop() {
       scrollDisplay(ERR_OUT_OF_MEM);
     else if (input == 'N')
       scrollDisplay(ERR_NO_CREDIT);
-    else if (input == 'C')
+    /*else if (input == 'C')
      scrollDisplay(COLA);
-    /*else if (input == 'P')
+    else if (input == 'P')
      scrollDisplay(PEPSI);
      else if (input == 'F')
      scrollDisplay(FANTA);
@@ -211,7 +209,7 @@ void loop() {
   checkAllSlots(); // Check if any slot is empty
   updateMotorsLEDs(); // Send out the new values to the shift register
   coinChecker(); // Check if any coins have been inserted
-  updateDry(); // Check for empty slots, and tweet if any slots become empty
+  //updateDry(); // Check for empty slots, and tweet if any slots become empty
 
   purchaseChecker(); // Check if a button has been pressed
   coinReturnCheck(); // Check if the coin return button is pressed
@@ -519,11 +517,8 @@ void showValue(uint16_t input) {
 void printDisplay(uint8_t *output) {
   displayScrolling = false; // Stop scrolling by default
   digitalWrite(latchPinLED, LOW);
-  shiftOut(dataPinLED, clockPinLED, MSBFIRST, output[0]);
-  shiftOut(dataPinLED, clockPinLED, MSBFIRST, output[1]);
-  shiftOut(dataPinLED, clockPinLED, MSBFIRST, output[2]);
-  shiftOut(dataPinLED, clockPinLED, MSBFIRST, output[3]);
-  shiftOut(dataPinLED, clockPinLED, MSBFIRST, output[4]);
+  for (uint8_t i = 0; i < 5; i++)
+    shiftOut(dataPinLED, clockPinLED, MSBFIRST, output[i]);
   digitalWrite(latchPinLED, HIGH);
 }
 
@@ -620,7 +615,7 @@ void delayNew(unsigned long ms) { // Just a copy of the normal delay(), but also
     }
   }
 }
-
+/*
 void updateDry() { // Check if any of the slots are empty, and updates the Dry information
   uint32_t input = readSwitches();
   for (uint8_t i = 0; i < sizeof(motorToOutputMask); i++) {
@@ -670,4 +665,4 @@ void tweetStatus() {
 
   Serial.println();
 }
-
+*/
