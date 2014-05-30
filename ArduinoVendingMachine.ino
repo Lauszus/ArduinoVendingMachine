@@ -124,7 +124,7 @@ void setup() {
 #define TRANSMISSION_ATOM_SIZE 3
 uint8_t recieve_error;
 uint16_t rfid_raw_read(){
-  unsigned char parseBuffer[TRANSMISSION_REPEATS*TRANSMISSION_ATOM_SIZE];
+  char parseBuffer[TRANSMISSION_REPEATS*TRANSMISSION_ATOM_SIZE];
   uint16_t number = 0;
   recieve_error = 1; // set default to error
   if(Serial.readBytes(parseBuffer, sizeof(parseBuffer)) == sizeof(parseBuffer)){
