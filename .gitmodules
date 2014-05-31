@@ -4,3 +4,6 @@
 [submodule "VendingMachinePython"]
 	path = VendingMachinePython
 	url = https://github.com/Jervelund/VendingMachinePython.git
+[submodule "VendingMachineRFID"]
+	path = VendingMachineRFID
+	url = https://github.com/Jervelund/VendingMachineRFID
