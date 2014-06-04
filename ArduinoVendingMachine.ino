@@ -14,6 +14,9 @@ const uint8_t *nameArray[] = { LADDER, LADDER, LADDER, LADDER, LADDER, LADDER };
 const uint8_t coinSlotValue[] = { 5, 0, 10 }; // Coin slots from right to left - note that the middle one is not connected at the moment
 uint8_t coinSlotLeft[] = { 6, 0, 5 }; // Coins there is in the slot when it thinks it is empty - with safety margin of 1
 
+const uint16_t timeBetweenTweets = 60000;
+uint32_t lastTweet;
+
 // Do not change anything else below this line!
 const uint8_t coinPin = 2; // Interrupt pin connected to the coin validator pulse pin
 uint8_t lastButtonPressed;
@@ -46,7 +49,7 @@ const uint8_t errorLedMask = 0x02; //, greenLedMask = 0x01; // The green LED doe
 uint8_t motorOutput = 0, ledOutput = 0;
 uint32_t motorTimer;
 bool motorIsStuck[6];
-//bool reportedDry[6];
+bool reportedDry[6];
 uint32_t timeToNextTrapped;
 uint32_t lastTrapped;
 
@@ -109,10 +112,10 @@ void setup() {
     showValue(counter); // Update display to show counter value
 
   pinMode(coinPin, INPUT); // Setup coin input
-  counter = lastCounter = coinPulsesRecieved = lastCoinPulsesRecieved = 0;
+  counter = lastCounter = coinPulsesRecieved = lastCoinPulsesRecieved = lastTweet = 0;
   EEPROM_readAnything(0, totalUnitsDispensed); // Read value from EEPROM
   delay(300); // Make sure the voltage is stable
-  //updateDryNoOutput();
+  updateDryNoOutput();
   lastTrapped = 0;
   randomSeed(analogRead(A4)); // Use analog input as random seed
   timeToNextTrapped = random(1000000, 3000000);
@@ -134,8 +137,8 @@ uint16_t rfid_raw_read(){
       if(parseBuffer[2] == TRANSMISSION_SPACE){
         // OK
         recieve_error = 0;
-        // Let other party know we do not need a retransmission
         memcpy(&number,parseBuffer,sizeof(number));
+        // Rember to notify other party that we do not need a retransmission
       }
     }
   }
@@ -159,26 +162,37 @@ void loop() {
     //}
     //RFID functionality
     if(input == 'C'){ // Fetch current credits
+      Serial.write('C');
       rfid_raw_transmit(counter);
     }
     else if(input == 'S'){ // Set current credits
       uint16_t temp_counter = rfid_raw_read();
       if(recieve_error == 0){ // If credits recieved correctly, update counter
         counter = temp_counter;
-        Serial.write(0);
-      } else {Serial.write(255);} // Did not recieve correctly - notify other party
+        // Transmit recieved message back to notify other party we recieved correctly
+        Serial.write('S');
+        Serial.write(temp_counter & 0xFF);
+        Serial.write(temp_counter >> 8);
+      } else {Serial.write(255);Serial.write(255);Serial.write(255);} // Did not recieve correctly - notify other party
       showValue(counter);
     }
     else if(input == 'Z'){ // Zero current credits
+      Serial.write('Z');
       counter = 0;
       showValue(counter);
     }
-    else if (input == 'B')
+    else if (input == 'B'){
+      Serial.write('B');
       scrollDisplay(ERR_EEPROM_BAD);
-    else if (input == 'O')
+    }
+    else if (input == 'O'){
+      Serial.write('O');
       scrollDisplay(ERR_OUT_OF_MEM);
-    else if (input == 'N')
+    }
+    else if (input == 'N'){
+      Serial.write('N');
       scrollDisplay(ERR_NO_CREDIT);
+    }
     /*else if (input == 'C')
      scrollDisplay(COLA);
     else if (input == 'P')
@@ -209,13 +223,18 @@ void loop() {
   checkAllSlots(); // Check if any slot is empty
   updateMotorsLEDs(); // Send out the new values to the shift register
   coinChecker(); // Check if any coins have been inserted
-  //updateDry(); // Check for empty slots, and tweet if any slots become empty
+  updateDry(); // Check for empty slots, and tweet if any slots become empty
 
   purchaseChecker(); // Check if a button has been pressed
   coinReturnCheck(); // Check if the coin return button is pressed
 
+  if (millis() - lastTweet > timeBetweenTweets) {
+    tweetStatus();
+    lastTweet = millis();
+  }
+
   if (millis() - lastTrapped > timeToNextTrapped) {
-    scrollDisplay(TRAPPED); // Show stuck in vendingmachine
+    scrollDisplay(TRAPPED); // Display "Help... I'm stuck in a vendingmachine"
     lastTrapped = millis();
     timeToNextTrapped = random(100000, 3000000);
   }
@@ -615,7 +634,7 @@ void delayNew(unsigned long ms) { // Just a copy of the normal delay(), but also
     }
   }
 }
-/*
+
 void updateDry() { // Check if any of the slots are empty, and updates the Dry information
   uint32_t input = readSwitches();
   for (uint8_t i = 0; i < sizeof(motorToOutputMask); i++) {
@@ -665,4 +684,3 @@ void tweetStatus() {
 
   Serial.println();
 }
-*/
