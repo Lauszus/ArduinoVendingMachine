@@ -60,8 +60,8 @@ const uint8_t COIN_EMPTY = 500; // If the ADC value gets below this value, then 
 uint32_t refundTimer;
 
 void setup() {
-  Serial.begin(19200); // Initialize serial communications with master vending arduino
-  Serial.setTimeout(400);
+  Serial.begin(57600); // Initialize serial communications with master vending Arduino
+  Serial.setTimeout(200);
 
   // Pins for LED matrix
   digitalWrite(clockPinLED, LOW);
