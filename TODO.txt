@@ -1,6 +1,4 @@
 Lav webserver på Raspberry Pi
-RFID læser - alle kan få et kort som der så er penge på
-	Kan styres vha. rpi
 Fix out of coins tweet
 Skal ikke printe "No credit flere gange"
 Re-alloker kort ved Bad EEPROM på RFID
