@@ -257,13 +257,18 @@ void loop() {
 }
 
 bool checkCoinSlots() {
-  bool output = true;
-  for (uint8_t i = 0; i < sizeof(coinSlot); i++) {
-    if (coinSlotValue[i] > 0 && analogRead(coinSlot[i]) < COIN_EMPTY) { // Check if coin slot is empty
-      output = false;
+  uint8_t minCoinIndex = 0;
+  uint8_t minCoinValue = 0xFF;
+  for (uint8_t i = 0; i < sizeof(coinSlotValue); i++) {
+    if (coinSlotValue[i] != 0 && coinSlotValue[i] < minCoinValue) { // Find minimum coin value
+      minCoinIndex = i;
+      minCoinValue = coinSlotValue[i];
     }
   }
-  return output;
+
+  if (coinSlotValue[minCoinIndex] > 0 && analogRead(coinSlot[minCoinIndex]) < COIN_EMPTY) // Check if coin slot with minimum value is empty
+    return false;
+  return true;
 }
 
 void coinChecker() {
@@ -271,7 +276,7 @@ void coinChecker() {
     if (coinPulsesRecieved > 1) { // Accept coin(s) and reset coin pulses
       cli(); // Disable interrupts to make sure we don't disregard any coins
       uint8_t coins = coinPulsesRecieved >> 1; // Get count of "whole" coins
-      coinPulsesRecieved -= coins << 1; // Substract "whole" coins from pulses recieved (we could be between pulses)
+      coinPulsesRecieved -= coins << 1; // Subtract "whole" coins from pulses received (we could be between pulses)
       sei(); // Enable interrupts again
       counter += coins * 5;
       lastCoinPulseTime = 0;
@@ -279,7 +284,7 @@ void coinChecker() {
     lastCoinPulsesRecieved = coinPulsesRecieved;
   }
   else if (coinPulsesRecieved == 1) { // If pulses is 1, and has not changed for 150ms, reset pulse count
-    if (lastCoinPulseTime == 0) // If timer is not set, the pulse was just recieved
+    if (lastCoinPulseTime == 0) // If timer is not set, the pulse was just received
       lastCoinPulseTime = millis();
     else if (millis() - lastCoinPulseTime > 150) // Faux pulse - reset everything
       lastCoinPulseTime = coinPulsesRecieved = lastCoinPulsesRecieved = 0;
