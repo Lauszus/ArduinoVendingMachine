@@ -107,7 +107,7 @@ void setup() {
   if (!checkCoinSlots()) {
     scrollDisplay(NO_REFUND); // If there is no coins left show "No refund"
     refundTimer = millis();
-  } 
+  }
   else
     showValue(counter); // Update display to show counter value
 
@@ -127,17 +127,17 @@ void setup() {
 #define TRANSMISSION_ATOM_SIZE 3
 uint8_t recieve_error;
 
-uint16_t rfid_raw_read(){
-  char parseBuffer[TRANSMISSION_REPEATS*TRANSMISSION_ATOM_SIZE];
+uint16_t rfid_raw_read() {
+  char parseBuffer[TRANSMISSION_REPEATS * TRANSMISSION_ATOM_SIZE];
   uint16_t number = 0;
   recieve_error = 1; // set default to error
-  if(Serial.readBytes(parseBuffer, sizeof(parseBuffer)) == sizeof(parseBuffer)){
+  if (Serial.readBytes(parseBuffer, sizeof(parseBuffer)) == sizeof(parseBuffer)) {
     // Recieved correct ammount of bytes - check message integrity
-    if(memcmp(parseBuffer,parseBuffer+TRANSMISSION_ATOM_SIZE,sizeof(parseBuffer)-TRANSMISSION_ATOM_SIZE) == 0){
-      if(parseBuffer[2] == TRANSMISSION_SPACE){
+    if (memcmp(parseBuffer, parseBuffer + TRANSMISSION_ATOM_SIZE, sizeof(parseBuffer) - TRANSMISSION_ATOM_SIZE) == 0) {
+      if (parseBuffer[2] == TRANSMISSION_SPACE) {
         // OK
         recieve_error = 0;
-        memcpy(&number,parseBuffer,sizeof(number));
+        memcpy(&number, parseBuffer, sizeof(number));
         // Rember to notify other party that we do not need a retransmission
       }
     }
@@ -145,8 +145,8 @@ uint16_t rfid_raw_read(){
   return number;
 }
 
-char rfid_raw_transmit(uint16_t number){
-  for (int i = 0; i < TRANSMISSION_REPEATS*TRANSMISSION_ATOM_SIZE; i = i+TRANSMISSION_ATOM_SIZE) {
+char rfid_raw_transmit(uint16_t number) {
+  for (int i = 0; i < TRANSMISSION_REPEATS * TRANSMISSION_ATOM_SIZE; i = i + TRANSMISSION_ATOM_SIZE) {
     Serial.write(number & 0xFF);
     Serial.write(number >> 8);
     Serial.write(TRANSMISSION_SPACE);
@@ -161,35 +161,39 @@ void loop() {
     //spinMotor(input - '0');
     //}
     //RFID functionality
-    if(input == 'C'){ // Fetch current credits
+    if (input == 'C') { // Fetch current credits
       Serial.write('C');
       rfid_raw_transmit(counter);
     }
-    else if(input == 'S'){ // Set current credits
+    else if (input == 'S') { // Set current credits
       uint16_t temp_counter = rfid_raw_read();
-      if(recieve_error == 0){ // If credits recieved correctly, update counter
+      if (recieve_error == 0) { // If credits recieved correctly, update counter
         counter = temp_counter;
         // Transmit recieved message back to notify other party we recieved correctly
         Serial.write('S');
         Serial.write(temp_counter & 0xFF);
         Serial.write(temp_counter >> 8);
-      } else {Serial.write(255);Serial.write(255);Serial.write(255);} // Did not recieve correctly - notify other party
+      } else {
+        Serial.write(255);  // Did not recieve correctly - notify other party
+        Serial.write(255);
+        Serial.write(255);
+      }
       showValue(counter);
     }
-    else if(input == 'Z'){ // Zero current credits
+    else if (input == 'Z') { // Zero current credits
       Serial.write('Z');
       counter = 0;
       showValue(counter);
     }
-    else if (input == 'B'){
+    else if (input == 'B') {
       Serial.write('B');
       scrollDisplay(ERR_EEPROM_BAD);
     }
-    else if (input == 'O'){
+    else if (input == 'O') {
       Serial.write('O');
       scrollDisplay(ERR_OUT_OF_MEM);
     }
-    else if (input == 'N'){
+    else if (input == 'N') {
       Serial.write('N');
       scrollDisplay(ERR_NO_CREDIT);
     }
@@ -244,7 +248,7 @@ void loop() {
   else if (!checkCoinSlots() && (millis() - refundTimer > 12000)) { // Scroll "No refund" every 12s
     scrollDisplay(NO_REFUND); // If there is no coins left show "No refund"
     refundTimer = millis();
-  } 
+  }
   else if ((!waitAfterButtonPress && counter != lastCounter) || (waitAfterButtonPress && (millis() - purchaseTimer > 1000))) { // Only update the LED matrix if a coin has been inserted or 1s after purchaseChecker() has printed something to the LED matrix
     showValue(counter);
     lastCounter = counter;
@@ -255,7 +259,7 @@ void loop() {
 bool checkCoinSlots() {
   bool output = true;
   for (uint8_t i = 0; i < sizeof(coinSlot); i++) {
-    if (coinSlotValue[i] > 0 && analogRead(coinSlot[i]) < COIN_EMPTY){ // Check if coin slot is empty
+    if (coinSlotValue[i] > 0 && analogRead(coinSlot[i]) < COIN_EMPTY) { // Check if coin slot is empty
       output = false;
     }
   }
@@ -273,7 +277,7 @@ void coinChecker() {
       lastCoinPulseTime = 0;
     }
     lastCoinPulsesRecieved = coinPulsesRecieved;
-  } 
+  }
   else if (coinPulsesRecieved == 1) { // If pulses is 1, and has not changed for 150ms, reset pulse count
     if (lastCoinPulseTime == 0) // If timer is not set, the pulse was just recieved
       lastCoinPulseTime = millis();
@@ -352,10 +356,10 @@ void updateScroll() { // This should be called regularly after scrollDisplay() i
     if (displayBuffer[0] == OFF) { // End char found
       displayBuffer[0] = SPACE; // Set LEDs off
       trailingSpaces++;
-    } 
+    }
     else
       scrollPosition++;
-  } 
+  }
   else
     trailingSpaces++; // End char is found, so just add trailing spaces until text is fully scrolled out
 
@@ -430,13 +434,13 @@ void purchaseChecker() {
           spinMotor(buttonPressed);
           scrollDisplay(nameArray[buttonPressed]);
         }
-      } 
+      }
       else { // Not enough money to buy item
         showValue(price); // Show the price of the item
         purchaseTimer = millis(); // Set up timer, so it clears it after a set amount of time
         waitAfterButtonPress = true;
       }
-    } 
+    }
     else {
       if (motorIsStuck[buttonPressed] == true)
         showErrorJam(); // Show error for 1s
@@ -493,10 +497,10 @@ void showBoot() {
   output[3] = O;
   output[2] = O;
   randomSeed(analogRead(A4)); // Use analog input as random seed
-  if(random(1, 5) == 1){
+  if (random(1, 5) == 1) {
     output[1] = T1;
     output[0] = T2;
-  } 
+  }
   else {
     output[1] = B;
     output[0] = S;
@@ -541,20 +545,20 @@ void printDisplay(uint8_t *output) {
   digitalWrite(latchPinLED, HIGH);
 }
 
-bool checkMotors(){
+bool checkMotors() {
   uint8_t motorsDone = 0;
   uint32_t input = readSwitches();
   for (uint8_t i = 0; i < sizeof(motorToOutputMask); i++) {
     if (!motorSwitchPressed(input, i)) // If switch is released stop motor
       motorsDone++;
   }
-  if(motorsDone == sizeof(motorToOutputMask))
+  if (motorsDone == sizeof(motorToOutputMask))
     return true;
   return false;
 }
 
 void resetMotors() { // Set all motors to the default position
-  if(checkMotors()){ // If all motors are in correct position, write motorOutput to zero and return
+  if (checkMotors()) { // If all motors are in correct position, write motorOutput to zero and return
     updateMotorsLEDs();
     return;
   }
