@@ -185,6 +185,9 @@ void loop() {
       counter = 0;
       showValue(counter);
     }
+    else if (input == 'F') {
+      Serial.write('F'); // RFID request concluded without error
+    }
     else if (input == 'E') {
       Serial.write('E');
       scrollDisplay(ERR_EEPROM_BAD);
