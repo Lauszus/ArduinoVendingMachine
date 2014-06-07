@@ -167,14 +167,14 @@ void loop() {
     }
     else if (input == 'S') { // Set current credits
       uint16_t temp_counter = rfid_raw_read();
-      if (recieve_error == 0) { // If credits recieved correctly, update counter
+      if (recieve_error == 0) { // If credits received correctly, update counter
         counter = temp_counter;
-        // Transmit recieved message back to notify other party we recieved correctly
+        // Transmit received message back to notify other party we received correctly
         Serial.write('S');
         Serial.write(temp_counter & 0xFF);
         Serial.write(temp_counter >> 8);
       } else {
-        Serial.write(255);  // Did not recieve correctly - notify other party
+        Serial.write(255);  // Did not receive correctly - notify other party
         Serial.write(255);
         Serial.write(255);
       }
@@ -185,8 +185,8 @@ void loop() {
       counter = 0;
       showValue(counter);
     }
-    else if (input == 'B') {
-      Serial.write('B');
+    else if (input == 'E') {
+      Serial.write('E');
       scrollDisplay(ERR_EEPROM_BAD);
     }
     else if (input == 'O') {
@@ -211,16 +211,19 @@ void loop() {
      scrollDisplay(NO_REFUND);
      else if (input == 'T')
      scrollDisplay(TRAPPED);*/
-    else if (input == 'E')
+    /*else if (input == 'E')
       Serial.println(totalUnitsDispensed);
     else if (input == 'R') {
       Serial.print("EEPROM was reset - old value: ");
       Serial.println(totalUnitsDispensed);
       totalUnitsDispensed = 0;
       EEPROM_updateAnything(0, totalUnitsDispensed);
-    }/* else if (input == 'S') {
+    } else if (input == 'S') {
      tweetStatus();
      }*/
+
+    if (millis() - lastTweet > timeBetweenTweets - 5000) // Assume that we sent a response
+      lastTweet += 10000; // Postpone tweet
   }
 
   checkStopMotor(); // Check if a motor has turned a half revolution
@@ -669,27 +672,27 @@ void updateDryNoOutput() {
 
 void tweetStatus() {
   // Show beverages dispensed (sold)
-  Serial.print("S");
+  Serial.write('B');
   Serial.print(totalUnitsDispensed);
 
   // Print all jammed slots
-  Serial.print(",J");
+  Serial.write(",J");
   for (uint8_t i = 0; i < sizeof(motorIsStuck); i++)
     if (motorIsStuck[i])
       Serial.print(i);
 
   // Print all empty slots
-  Serial.print(",D");
+  Serial.write(",D");
   for (uint8_t i = 0; i < sizeof(reportedDry); i++)
     if (reportedDry[i])
       Serial.print(i);
 
   // Print all empty coin slots
-  Serial.print(",C");
+  Serial.write(",R");
   if (coinSlotLeft[0] == 0)
-    Serial.print("0");
+    Serial.write('0');
   if (coinSlotLeft[2] == 0)
-    Serial.print("2");
+    Serial.write('2');
 
-  Serial.println();
+  Serial.write(',');
 }
