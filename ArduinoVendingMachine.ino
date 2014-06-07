@@ -263,13 +263,13 @@ bool checkCoinSlots() {
   uint8_t minCoinIndex = 0;
   uint8_t minCoinValue = 0xFF;
   for (uint8_t i = 0; i < sizeof(coinSlotValue); i++) {
-    if (coinSlotValue[i] != 0 && coinSlotValue[i] < minCoinValue) { // Find minimum coin value
+    if (coinSlotValue[i] > 0 && coinSlotValue[i] < minCoinValue) { // Find minimum coin value
       minCoinIndex = i;
       minCoinValue = coinSlotValue[i];
     }
   }
 
-  if (coinSlotValue[minCoinIndex] > 0 && analogRead(coinSlot[minCoinIndex]) < COIN_EMPTY) // Check if coin slot with minimum value is empty
+  if (analogRead(coinSlot[minCoinIndex]) < COIN_EMPTY) // Check if coin slot with minimum value is empty
     return false;
   return true;
 }
