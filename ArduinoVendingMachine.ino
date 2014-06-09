@@ -12,13 +12,15 @@ const uint8_t priceArray[] = { 5, 5, 5, 5, 5, 5 };
 const uint8_t *nameArray[] = { LADDER, LADDER, LADDER, LADDER, LADDER, LADDER }; // See in ArduinoVendingMachine.h for the possible names. If the one you need is not present then type NULL instead
 // Change value of the coin slots:
 const uint8_t coinSlotValue[] = { 5, 0, 10 }; // Coin slots from right to left - note that the middle one is not connected at the moment
-uint8_t coinSlotLeft[] = { 6, 0, 5 }; // Coins there is in the slot when it thinks it is empty - with safety margin of 1
+const uint8_t coinSlotLeftDefault[] = { 6, 0, 5 }; // Coins there is in the slot when it thinks it is empty - with safety margin of 1
 
 const uint16_t timeBetweenTweets = 60000;
 uint8_t tweetCoins = 0;
 uint32_t lastTweet, tweetCoinsTimer;
 
 // Do not change anything else below this line!
+uint8_t coinSlotLeft[] = { coinSlotLeftDefault[0], coinSlotLeftDefault[1], coinSlotLeftDefault[2] };
+
 const uint8_t coinPin = 2; // Interrupt pin connected to the coin validator pulse pin
 uint8_t lastButtonPressed;
 uint32_t purchaseTimer;
@@ -275,6 +277,10 @@ bool checkCoinSlots() {
       minCoinIndex = i;
       minCoinValue = coinSlotValue[i];
     }
+    if (analogRead(coinSlot[i]) < COIN_EMPTY) // Check if coin slot is empty
+      coinSlotLeft[i] = 0;
+    else
+      coinSlotLeft[i] = coinSlotLeftDefault[i]; // Restore default value if has been refilled
   }
 
   if (analogRead(coinSlot[minCoinIndex]) < COIN_EMPTY) // Check if coin slot with minimum value is empty
@@ -321,7 +327,7 @@ void coinReturnCheck() {
       for (uint8_t j = 0; j < sizeof(coinSlotValue); j++) {
         if (sortedArray[i] > 0 && coinSlotValue[j] == sortedArray[i]) {
           while (counter >= coinSlotValue[j]) { // Keep releasing coins until the counter is lower than the value
-            if (analogRead(coinSlot[j]) < COIN_EMPTY && coinSlotLeft[j] == 0) // Check if coin slot is empty
+            if (coinSlotLeft[j] == 0) // Check if coin slot is empty
               break;
             else {
               digitalWrite(coinSolenoid[j], HIGH); // Turn on solenoid
