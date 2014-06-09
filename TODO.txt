@@ -1,4 +1,2 @@
-Lav webserver på Raspberry Pi
-Fix out of coins tweet
 Skal ikke printe "No credit flere gange"
 Re-alloker kort ved Bad EEPROM på RFID
