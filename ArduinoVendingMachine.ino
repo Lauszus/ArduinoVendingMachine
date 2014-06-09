@@ -15,8 +15,8 @@ const uint8_t coinSlotValue[] = { 5, 0, 10 }; // Coin slots from right to left -
 uint8_t coinSlotLeft[] = { 6, 0, 5 }; // Coins there is in the slot when it thinks it is empty - with safety margin of 1
 
 const uint16_t timeBetweenTweets = 60000;
-uint32_t lastTweet;
 uint8_t tweetCoins = 0;
+uint32_t lastTweet, tweetCoinsTimer;
 
 // Do not change anything else below this line!
 const uint8_t coinPin = 2; // Interrupt pin connected to the coin validator pulse pin
@@ -202,20 +202,20 @@ void loop() {
       scrollDisplay(ERR_NO_CREDIT);
     }
     /*else if (input == 'C')
-     scrollDisplay(COLA);
+      scrollDisplay(COLA);
     else if (input == 'P')
-     scrollDisplay(PEPSI);
-     else if (input == 'F')
-     scrollDisplay(FANTA);
-     else if (input == 'X')
-     scrollDisplay(FAXE);
-     else if (input == 'B')
-     scrollDisplay(BEER);
-     else if (input == 'N')
-     scrollDisplay(NO_REFUND);
-     else if (input == 'T')
-     scrollDisplay(TRAPPED);*/
-    /*else if (input == 'E')
+      scrollDisplay(PEPSI);
+    else if (input == 'F')
+      scrollDisplay(FANTA);
+    else if (input == 'X')
+      scrollDisplay(FAXE);
+    else if (input == 'B')
+      scrollDisplay(BEER);
+    else if (input == 'N')
+      scrollDisplay(NO_REFUND);
+    else if (input == 'T')
+      scrollDisplay(TRAPPED);
+    else if (input == 'E')
       Serial.println(totalUnitsDispensed);
     else if (input == 'R') {
       Serial.print("EEPROM was reset - old value: ");
@@ -223,8 +223,8 @@ void loop() {
       totalUnitsDispensed = 0;
       EEPROM_updateAnything(0, totalUnitsDispensed);
     } else if (input == 'S') {
-     tweetStatus();
-     }*/
+      tweetStatus();
+    }*/
 
     delayTweet();
   }
@@ -262,7 +262,7 @@ void loop() {
   }
 }
 
-void delayTweet(){
+void delayTweet() {
   if (millis() - lastTweet > timeBetweenTweets - 5000) // Assume that we sent a response
     lastTweet += 10000; // Postpone tweet
 }
@@ -293,6 +293,7 @@ void coinChecker() {
       counter += creditsAdded;
       tweetCoins += creditsAdded;
       lastCoinPulseTime = 0;
+      tweetCoinsTimer = millis();
     }
     lastCoinPulsesRecieved = coinPulsesRecieved;
     delayTweet();
@@ -302,6 +303,11 @@ void coinChecker() {
       lastCoinPulseTime = millis();
     else if (millis() - lastCoinPulseTime > 150) // Faux pulse - reset everything
       lastCoinPulseTime = coinPulsesRecieved = lastCoinPulsesRecieved = 0;
+  }
+  if (tweetCoins && millis() - tweetCoinsTimer > 500) {
+    Serial.write('c');
+    Serial.write(tweetCoins);
+    tweetCoins = 0;
   }
 }
 
@@ -710,12 +716,4 @@ void tweetStatus() {
     Serial.write('2');
 
   Serial.write(',');
-
-  if(tweetCoins){
-    Serial.write("c");
-    cli(); // Disable interrupts to make sure we don't disregard any coins
-    Serial.write(tweetCoins);
-    tweetCoins = 0;
-    sei(); // Enable interrupts again
-  }
 }
