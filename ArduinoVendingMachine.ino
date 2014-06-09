@@ -16,6 +16,7 @@ uint8_t coinSlotLeft[] = { 6, 0, 5 }; // Coins there is in the slot when it thin
 
 const uint16_t timeBetweenTweets = 60000;
 uint32_t lastTweet;
+uint8_t tweetCoins = 0;
 
 // Do not change anything else below this line!
 const uint8_t coinPin = 2; // Interrupt pin connected to the coin validator pulse pin
@@ -225,8 +226,7 @@ void loop() {
      tweetStatus();
      }*/
 
-    if (millis() - lastTweet > timeBetweenTweets - 5000) // Assume that we sent a response
-      lastTweet += 10000; // Postpone tweet
+    delayTweet();
   }
 
   checkStopMotor(); // Check if a motor has turned a half revolution
@@ -262,6 +262,11 @@ void loop() {
   }
 }
 
+void delayTweet(){
+  if (millis() - lastTweet > timeBetweenTweets - 5000) // Assume that we sent a response
+    lastTweet += 10000; // Postpone tweet
+}
+
 bool checkCoinSlots() {
   uint8_t minCoinIndex = 0;
   uint8_t minCoinValue = 0xFF;
@@ -284,10 +289,13 @@ void coinChecker() {
       uint8_t coins = coinPulsesRecieved >> 1; // Get count of "whole" coins
       coinPulsesRecieved -= coins << 1; // Subtract "whole" coins from pulses received (we could be between pulses)
       sei(); // Enable interrupts again
-      counter += coins * 5;
+      uint8_t creditsAdded = coins * 5;
+      counter += creditsAdded;
+      tweetCoins += creditsAdded;
       lastCoinPulseTime = 0;
     }
     lastCoinPulsesRecieved = coinPulsesRecieved;
+    delayTweet();
   }
   else if (coinPulsesRecieved == 1) { // If pulses is 1, and has not changed for 150ms, reset pulse count
     if (lastCoinPulseTime == 0) // If timer is not set, the pulse was just received
@@ -310,16 +318,20 @@ void coinReturnCheck() {
             if (analogRead(coinSlot[j]) < COIN_EMPTY && coinSlotLeft[j] == 0) // Check if coin slot is empty
               break;
             else {
-              digitalWrite(coinSolenoid[j], HIGH); // Pulse solenoid
-              delayNew(250); // Turn on solenoid
-              digitalWrite(coinSolenoid[j], LOW);
-              delayNew(250); // Make sure coin is released
+              digitalWrite(coinSolenoid[j], HIGH); // Turn on solenoid
+              delayNew(250); // Wait while polling motors
+              digitalWrite(coinSolenoid[j], LOW); // Release solenoid
+              delayNew(250); // Wait while polling motors
 
               if (analogRead(coinSlot[j]) < COIN_EMPTY)
                 coinSlotLeft[j]--;
 
               counter -= coinSlotValue[j];
               showValue(counter);
+
+              // Tweet coin release
+              Serial.write('r');
+              Serial.write(coinSlotValue[j]);
             }
           }
         }
@@ -698,4 +710,12 @@ void tweetStatus() {
     Serial.write('2');
 
   Serial.write(',');
+
+  if(tweetCoins){
+    Serial.write("c");
+    cli(); // Disable interrupts to make sure we don't disregard any coins
+    Serial.write(tweetCoins);
+    tweetCoins = 0;
+    sei(); // Enable interrupts again
+  }
 }
