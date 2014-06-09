@@ -105,8 +105,8 @@ void setup() {
 
   // Update display and set motors to the default position
   showBoot();
-  delay(2000);
-  resetMotors(); // Reset all motors to the default position
+  //delay(2000);
+  //resetMotors(); // Reset all motors to the default position
   if (!checkCoinSlots()) {
     scrollDisplay(NO_REFUND); // If there is no coins left show "No refund"
     refundTimer = millis();
@@ -591,7 +591,7 @@ bool checkMotors() {
     return true;
   return false;
 }
-
+/*
 void resetMotors() { // Set all motors to the default position
   if (checkMotors()) { // If all motors are in correct position, write motorOutput to zero and return
     updateMotorsLEDs();
@@ -618,7 +618,7 @@ void resetMotors() { // Set all motors to the default position
     delay(2);
   }
 }
-
+*/
 void motorStuck(uint8_t motor) {
   motorOutput &= ~motorToOutputMask[motor]; // Turn off motor
   motorIsStuck[motor] = true;
