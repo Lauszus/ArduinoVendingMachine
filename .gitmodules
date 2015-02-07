@@ -7,3 +7,6 @@
 [submodule "VendingMachineRFID"]
 	path = VendingMachineRFID
 	url = https://github.com/Jervelund/VendingMachineRFID
+[submodule "VendingMachineImp"]
+	path = VendingMachineImp
+	url = https://github.com/Jervelund/VendingMachineImp
