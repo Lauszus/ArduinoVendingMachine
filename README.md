@@ -8,6 +8,8 @@ This is the Arduino code to be used with an old vending machine which had a faul
 
 The code is used with an Arduino Pro Mini.
 
-It communicates with a Raspberry Pi via Bluetooth. The Raspberry Pi is running a Python script: <https://github.com/Jervelund/VendingMachinePython> allowing it to tweet different status messages. The current status of the machine can be seen at its Twitter profile: <https://twitter.com/43vending>.
+The current status of the machine can be seen at its Twitter profile: <https://twitter.com/43vending>.
+
+More information can be found at the blog post: <http://blog.tkjelectronics.dk/2015/02/iot-arduino-vending-machine/>.
 
 For more information send me an email at <kristianl@tkjelectronics.dk>.
