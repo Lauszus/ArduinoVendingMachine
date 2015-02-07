@@ -82,5 +82,7 @@ void delayNew(unsigned long ms);
 void updateDry();
 void tweetBoot();
 void tweetStatus();
+void delayTweet();
+void updateDryNoOutput();
 
 #endif
