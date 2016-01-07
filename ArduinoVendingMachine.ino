@@ -512,7 +512,7 @@ void showError() {
 }
 
 void showErrorJam() {
-  uint8_t output[5];
+  static uint8_t output[5];
   output[4] = SPACE;
   output[3] = j;
   output[2] = A;
@@ -525,7 +525,7 @@ void showErrorJam() {
 }
 
 void showErrorDry() {
-  uint8_t output[5];
+  static uint8_t output[5];
   output[4] = SPACE;
   output[3] = d;
   output[2] = r;
@@ -546,7 +546,7 @@ void cointInterrupt() {
 }
 
 void showBoot() {
-  uint8_t output[5];
+  static uint8_t output[5];
   output[4] = B;
   output[3] = O;
   output[2] = O;
@@ -563,7 +563,7 @@ void showBoot() {
 }
 
 void errorDisplay() {
-  uint8_t output[5];
+  static uint8_t output[5];
   output[4] = dash; // '-'
   output[3] = E;
   output[2] = r;
@@ -573,7 +573,7 @@ void errorDisplay() {
 }
 
 void showValue(uint16_t input) {
-  uint8_t output[5];
+  static uint8_t output[5];
   output[0] = numbers[input % 10];
 
   memset(output + 1, SPACE, sizeof(output) - 1); // Initialize the rest to off
