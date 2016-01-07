@@ -366,6 +366,26 @@ void sortArray(uint8_t *input, uint8_t size) { // Inspired by: http://www.tenouk
   }
 }
 
+void scrollValue(uint16_t input) {
+  static uint8_t output[6]; // Reserve one, so the buffer always end with OFF
+  memset(output, SPACE, sizeof(output)); // Initialize the rest to off
+
+  output[5] = OFF;
+  output[4] = numbers[input % 10];
+  if (input >= 10) {
+    output[3] = numbers[(input / 10) % 10];
+    if (input >= 100) {
+      output[2] = numbers[(input / 100) % 10];
+      if (input >= 1000) {
+        output[1] = numbers[(input / 1000) % 10];
+        if (input >= 10000)
+          output[0] = numbers[(input / 10000) % 10];
+      }
+    }
+  }
+  scrollDisplay(output);
+}
+
 void scrollDisplay(const uint8_t *output) {
   if (output == NULL)
     return;
@@ -467,10 +487,9 @@ void purchaseChecker() {
         if (!motorOutput) { // Check if any motor is spinning
           counter -= price;
           spinMotor(buttonPressed);
-          scrollDisplay(nameArray[buttonPressed]);
+          scrollValue(totalUnitsDispensed);
         }
-      }
-      else { // Not enough money to buy item
+      } else { // Not enough money to buy item
         showValue(price); // Show the price of the item
         purchaseTimer = millis(); // Set up timer, so it clears it after a set amount of time
         waitAfterButtonPress = true;
