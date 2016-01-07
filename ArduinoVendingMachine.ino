@@ -238,6 +238,7 @@ void loop() {
   updateDry(); // Check for empty slots, and tweet if any slots become empty
 
   purchaseChecker(); // Check if a button has been pressed
+  randomChecker(); // Check if random button is pressed
   coinReturnCheck(); // Check if the coin return button is pressed
 
   if (millis() - lastTweet > timeBetweenTweets) {
@@ -503,6 +504,100 @@ void purchaseChecker() {
     }
   }
   lastButtonPressed = buttonPressed;
+}
+
+void randomChecker() {
+  if ((readSwitches() >> 16) & 0x01) // If random button is not set return
+    return;
+
+  uint8_t purchaseAvailable;
+  for (uint8_t i = 0; i < sizeof(motorToInputMask); i++) {
+    // Check if the selected item is available and there is enough money
+    if (ledOutput & motorToOutputMask[i] && counter >= priceArray[i])
+      purchaseAvailable |= motorToOutputMask[i];
+    else
+      purchaseAvailable &= ~motorToOutputMask[i];
+  }
+  if (purchaseAvailable == 0)
+    return; // None are available
+
+  uint8_t ledCounter = sizeof(motorToInputMask) - 1;
+  uint8_t selections = 0xFF;
+  uint8_t buttons, oldButtons;
+  uint32_t timer;
+  uint8_t nAvailable = 0;
+  const uint16_t startSpeed = 300;
+
+  // Scroll LEDs
+  while (!((readSwitches() >> 16) & 0x01)) { // Run until button is released
+    checkStopMotor(); // Check if a motor has turned a half revolution
+    coinChecker(); // Check if any coins have been inserted
+
+    nAvailable = 0;
+    for (uint8_t i = 0; i < sizeof(motorToOutputMask); i++) {
+      if ((purchaseAvailable & selections) & motorToOutputMask[i])
+        nAvailable++;
+    }
+
+    uint32_t now = millis();
+    if (nAvailable > 0 && now - timer > startSpeed / nAvailable) { // Add delay when scrolling LEDs. The delay is adjusted based on the number of items selected
+      if ((purchaseAvailable & selections) & motorToOutputMask[ledCounter]) { // Make sure the item is both available and selected
+        timer = now;
+        ledOutput = motorToOutputMask[ledCounter]; // Set LED
+        updateMotorsLEDs();
+      }
+      if (ledCounter-- == 0)
+        ledCounter = sizeof(motorToOutputMask) - 1;
+    } else if (nAvailable == 0) { // If all slots are deselected turn off all LEDs
+      ledOutput = 0;
+      updateMotorsLEDs();
+    }
+
+    uint32_t switchInput = readSwitches();
+    buttons = 0;
+    for (uint8_t i = 0; i < sizeof(motorToOutputMask); i++) {
+      if (buyButtonPressed(switchInput, i))
+        buttons |= motorToOutputMask[i]; // Check if any buttons are pressed
+    }
+    selections ^= buttons & ~oldButtons; // Update selections. A bit is toggled every time a button is pressed and then released
+    oldButtons = buttons;
+  }
+
+  if (nAvailable == 0)
+    return; // No item has been selected
+
+  randomSeed(millis()); // Use millis as seed
+  uint16_t randomSelection = random(20, 40); // Get random number
+  uint16_t scrollDelay = startSpeed / nAvailable;
+
+  while (randomSelection) {
+    checkStopMotor(); // Check if a motor has turned a half revolution
+    coinChecker(); // Check if any coins have been inserted
+
+    uint32_t now = millis();
+    if (now - timer > scrollDelay) { // Add delay when scrolling LEDs
+      if ((purchaseAvailable & selections) & motorToOutputMask[ledCounter]) { // Make sure the item is both available and selected
+        if (randomSelection > 10)
+          scrollDelay++;
+        else
+          scrollDelay += (10 - randomSelection) * 15; // Slow down scrolling effect way more when we get close to the final selection
+        randomSelection--;
+        timer = now;
+        ledOutput = motorToOutputMask[ledCounter]; // Set new LED
+        updateMotorsLEDs();
+      }
+      if (ledCounter-- == 0)
+        ledCounter = sizeof(motorToOutputMask) - 1;
+    }
+  }
+  delayNew(600);
+
+  uint8_t tmpLedOutput = ledOutput;
+  for (uint8_t i = 0; i < 5; i++) { // Toggle LED to indicate selection
+    ledOutput ^= tmpLedOutput;
+    updateMotorsLEDs();
+    delayNew(250);
+  }
 }
 
 void showError() {
