@@ -203,7 +203,11 @@ void loop() {
       Serial.write('N');
       scrollDisplay(ERR_NO_CREDIT);
     }
-    /*else if (input == 'C')
+    /*else if (input == 'V') {
+      for (uint8_t motor = 0; motor < sizeof(motorToOutputMask); motor++)
+        spinMotor(motor);
+    }
+    else if (input == 'C')
       scrollDisplay(COLA);
     else if (input == 'P')
       scrollDisplay(PEPSI);
@@ -262,6 +266,12 @@ void loop() {
     showValue(counter);
     lastCounter = counter;
     waitAfterButtonPress = false;
+  }
+
+  if (totalUnitsDispensed % 1000 == 0) {
+    scrollDisplay(CONGRATULATIONS);
+    for (uint8_t motor = 0; motor < sizeof(motorToOutputMask); motor++)
+      spinMotor(motor);
   }
 }
 
