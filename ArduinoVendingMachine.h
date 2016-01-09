@@ -64,6 +64,7 @@ void checkAllSlots();
 void spinMotor(uint8_t motor);
 void checkStopMotor();
 void purchaseChecker();
+void randomChecker();
 void showError();
 void showErrorJam();
 void showErrorDry();
