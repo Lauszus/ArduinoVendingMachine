@@ -148,7 +148,7 @@ uint16_t rfid_raw_read() {
   return number;
 }
 
-char rfid_raw_transmit(uint16_t number) {
+void rfid_raw_transmit(uint16_t number) {
   for (int i = 0; i < TRANSMISSION_REPEATS * TRANSMISSION_ATOM_SIZE; i = i + TRANSMISSION_ATOM_SIZE) {
     Serial.write(number & 0xFF);
     Serial.write(number >> 8);
