@@ -51,6 +51,7 @@ const uint8_t BEER[] = { B, E, E, r, OFF };
 const uint8_t NO_REFUND[] = { n, o, SPACE, r, E, F, u, n, d, OFF };
 const uint8_t TRAPPED[] = { H, E, L, P, SPACE, I, SPACE, A, m1, m2, SPACE, T1, T2, r, A, P, P, E, d, SPACE, i, n, SPACE, A, SPACE, V, E, n, d, i, n, g, SPACE , m1, m2, A, c, h, i, n, E, OFF };
 const uint8_t LADDER[] = { ldash, mdash, hdash, mdash, ldash, mdash, hdash, mdash, ldash, OFF };
+const uint8_t CONGRATULATIONS[] = { C, o, n, g, r, a, T1, T2, u, L, a, T1, T2, i, o, n, S, OFF };
 
 // Function prototypes
 bool checkCoinSlots();
